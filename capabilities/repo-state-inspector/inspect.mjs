@@ -11,8 +11,47 @@ const SKIPPED_DIRECTORIES = new Set([
   'build',
   'out',
   '.next',
-  'target'
+  'target',
+  '.venv',
+  'venv',
+  'env',
+  '.tox',
+  '.pytest_cache',
+  '.mypy_cache'
 ]);
+
+const NESTED_PROJECT_SKIPPED_DIRECTORIES = new Set([
+  ...SKIPPED_DIRECTORIES,
+  '.cache',
+  'cache',
+  'temp',
+  'tmp',
+  'vendor',
+  'generated',
+  'output',
+  'outputs',
+  '.output',
+  '.generated',
+  'bin',
+  'obj',
+  '.terraform',
+  '.venv',
+  'venv',
+  'env',
+  '.tox',
+  '.pytest_cache',
+  '.mypy_cache'
+]);
+
+const NESTED_PROJECT_MARKERS = [
+  ['node', (name) => name === 'package.json'],
+  ['python', (name) => name === 'pyproject.toml' || /^requirements.*\.txt$/i.test(name)],
+  ['rust', (name) => name === 'Cargo.toml'],
+  ['go', (name) => name === 'go.mod'],
+  ['make', (name) => name === 'Makefile'],
+  ['dotnet', (name) => /\.(sln|csproj)$/i.test(name)],
+  ['terraform', (name) => /\.tf$/i.test(name)]
+];
 
 const INSTRUCTION_NAMES = new Set([
   'AGENTS.md',
@@ -282,6 +321,59 @@ function inspectPackage(root) {
   }
 }
 
+function inspectNestedProjects(root, maxDepth = 6) {
+  const projects = [];
+
+  function visit(directory, depth) {
+    if (depth > maxDepth) {
+      return;
+    }
+
+    let entries;
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+    const markers = {};
+    for (const entry of entries) {
+      if (!entry.isFile()) {
+        continue;
+      }
+      const marker = NESTED_PROJECT_MARKERS.find(([, matches]) => matches(entry.name));
+      if (marker) {
+        const [category] = marker;
+        if (!markers[category]) {
+          markers[category] = [];
+        }
+        markers[category].push(entry.name);
+      }
+    }
+
+    if (directory !== root && Object.keys(markers).length) {
+      const project = {
+        path: relativePath(root, directory),
+        markers
+      };
+      if (markers.node?.includes('package.json')) {
+        project.packageScripts = inspectPackage(directory).scripts;
+      }
+      projects.push(project);
+    }
+
+    for (const entry of entries) {
+      if (entry.isDirectory() && !NESTED_PROJECT_SKIPPED_DIRECTORIES.has(entry.name)) {
+        visit(path.join(directory, entry.name), depth + 1);
+      }
+    }
+  }
+
+  visit(root, 0);
+  return projects.sort((left, right) => left.path.localeCompare(right.path));
+}
+
 function inspect(rootPath) {
   const root = path.resolve(rootPath);
   if (!fs.existsSync(root)) {
@@ -318,7 +410,7 @@ function inspect(rootPath) {
     }));
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     target: root,
     topLevel,
     instructionFiles,
@@ -327,6 +419,7 @@ function inspect(rootPath) {
     packageManagers: [...new Set(packageManagers)],
     package: packageInfo,
     verificationCommands,
+    nestedProjects: inspectNestedProjects(root),
     ciWorkflowFiles: findWorkflows(root),
     git: inspectGit(root)
   };
@@ -371,6 +464,23 @@ function renderMarkdown(report) {
   lines.push(...(report.verificationCommands.length
     ? report.verificationCommands.map((entry) => `- \`${entry.command}\` - ${entry.script}`)
     : ['- no conventional package scripts detected']));
+  lines.push('', '## Nested Projects', '');
+  if (report.nestedProjects.length) {
+    for (const project of report.nestedProjects) {
+      lines.push(`- \`${project.path}\``);
+      for (const [category, files] of Object.entries(project.markers)) {
+        lines.push(`  - ${category}: ${files.map((file) => `\`${file}\``).join(', ')}`);
+      }
+      if (project.packageScripts) {
+        const scripts = Object.entries(project.packageScripts);
+        lines.push(`  - package scripts: ${scripts.length
+          ? scripts.map(([name, script]) => `\`${name}\`: ${script}`).join('; ')
+          : 'none'}`);
+      }
+    }
+  } else {
+    lines.push('- none detected');
+  }
   lines.push('', '## CI Workflows', '');
   lines.push(...(report.ciWorkflowFiles.length ? report.ciWorkflowFiles.map((file) => `- \`${file}\``) : ['- none detected']));
   lines.push('', '## Git', '');

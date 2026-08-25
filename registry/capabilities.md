@@ -4,7 +4,7 @@ The registry records reusable capabilities, not every script or experiment. A ca
 
 | ID | Status | Location | Purpose | Evidence |
 | --- | --- | --- | --- | --- |
-| `repo-state-inspector` | Kept | [`capabilities/repo-state-inspector`](../capabilities/repo-state-inspector/) | Produce a compact, read-only report of repository structure, state-file signals, package metadata, verification entry points, CI workflows, and Git status. | 3 local tests pass; four real repository runs found project state/CI, exposed inaccessible Git metadata, and identified a repository with no durable state file. |
+| `repo-state-inspector` | Kept | [`capabilities/repo-state-inspector`](../capabilities/repo-state-inspector/) | Produce a compact, read-only report of repository structure, state-file signals, nested project markers, package metadata, verification entry points, CI workflows, and Git status. | 4 local tests pass; seven real repository runs found project state/CI, nested Node/.NET/Terraform surfaces, inaccessible Git metadata, and a repository with no durable state file. |
 
 ## Status meanings
 

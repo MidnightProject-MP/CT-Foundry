@@ -17,3 +17,12 @@
 - **Success signal:** The next task can identify current direction, stopping point, and next action with fewer full-file reads and no consequential omission.
 - **Failure signal:** Signals are noisy, misleading, or too dependent on heading conventions; narrow or retire the extension rather than adding semantic inference.
 - **Current result:** Three local tests pass and real reports are readable. The signals informed this Foundry continuation and exposed current direction in Celestan and SuperSimpleGames, but the mandatory full state read remained useful. Keep the trial open.
+
+## EXP-003 - nested project inventory
+
+- **Question:** Can bounded discovery of nested project roots prevent a root-level report from hiding the actual verification surface?
+- **Hypothesis:** Direct markers for Node, Python, Rust, Go, Make, .NET, and Terraform projects will expose useful nested work without executing commands or listing every file.
+- **Smallest test:** Run the inventory on repositories with nested application, infrastructure, and multi-language projects, then compare its output with manual archaeology.
+- **Success signal:** The report identifies the real nested verification surfaces with less manual directory traversal and acceptable noise.
+- **Failure signal:** Nested output is too noisy, too slow, or misleading; narrow marker categories or retire the extension rather than adding inference.
+- **Current result:** Four local tests pass. Real runs found `app` and Terraform units in Radius-API-DataService, .NET and Node projects in Radius, and correctly excluded AutomatedReports' `.venv`. A script-only Python root remains an explicit limitation; promotion is pending a real implementation task.

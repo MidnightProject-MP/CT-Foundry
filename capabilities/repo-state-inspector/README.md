@@ -9,6 +9,7 @@ It reports:
 - compact signals from recognized state-file headings;
 - package manager markers and root `package.json` scripts;
 - likely verification scripts;
+- `nestedProjects`: nested project roots with direct ecosystem/verification markers and nested package scripts;
 - Git branch and working-tree status, including inaccessible worktrees;
 - GitHub Actions workflow files.
 

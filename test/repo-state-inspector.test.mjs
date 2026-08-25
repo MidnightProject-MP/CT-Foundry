@@ -51,6 +51,39 @@ test('reports repository conventions without reading generated directories', () 
   assert.match(renderMarkdown(report), /not a Git repository/);
 });
 
+test('reports bounded nested project markers and package scripts', () => {
+  const root = fixtureDirectory();
+  fs.mkdirSync(path.join(root, 'app'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'terraform'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'Radius-source'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'Scheduling-Microservice'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'vendor', 'hidden-project'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'build', 'hidden-project'), { recursive: true });
+  fs.mkdirSync(path.join(root, '.venv', 'Lib', 'site-packages', 'hidden-project'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'app', 'package.json'), JSON.stringify({
+    scripts: { test: 'node test.mjs', lint: 'eslint .' }
+  }));
+  fs.writeFileSync(path.join(root, 'terraform', 'main.tf'), 'resource "x" "y" {}\n');
+  fs.writeFileSync(path.join(root, 'terraform', 'notes.txt'), 'not a marker\n');
+  fs.writeFileSync(path.join(root, 'Radius-source', 'Radius.sln'), 'solution\n');
+  fs.writeFileSync(path.join(root, 'Radius-source', 'Radius.csproj'), 'project\n');
+  fs.writeFileSync(path.join(root, 'Scheduling-Microservice', 'package.json'), '{}');
+  fs.writeFileSync(path.join(root, 'vendor', 'hidden-project', 'package.json'), '{}');
+  fs.writeFileSync(path.join(root, 'build', 'hidden-project', 'package.json'), '{}');
+  fs.writeFileSync(path.join(root, '.venv', 'Lib', 'site-packages', 'hidden-project', 'pyproject.toml'), '[project]\n');
+
+  const report = inspect(root);
+
+  assert.deepEqual(report.nestedProjects, [
+    { path: 'app', markers: { node: ['package.json'] }, packageScripts: { test: 'node test.mjs', lint: 'eslint .' } },
+    { path: 'Radius-source', markers: { dotnet: ['Radius.csproj', 'Radius.sln'] } },
+    { path: 'Scheduling-Microservice', markers: { node: ['package.json'] }, packageScripts: {} },
+    { path: 'terraform', markers: { terraform: ['main.tf'] } }
+  ]);
+  assert.match(renderMarkdown(report), /## Nested Projects/);
+  assert.match(renderMarkdown(report), /`app`/);
+});
+
 test('reports a missing target as an actionable error', () => {
   assert.throws(
     () => inspect(path.join(os.tmpdir(), 'ct-foundry-inspector-does-not-exist')),
