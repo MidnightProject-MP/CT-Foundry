@@ -56,3 +56,7 @@ Use the inspector with state signals at the start of the next repository task. R
 - Remote: `https://github.com/MidnightProject-MP/CT-Foundry`.
 - Branch: `main`, pushed and tracking `origin/main`.
 - Working tree: clean after remote verification.
+
+## Stopping point
+
+`AUTONOMY_IDLE` - E1.S2 is implemented, verified, released, and awaiting evidence from the next real repository task. No target task is currently available, and adding more machinery would be invented work.
