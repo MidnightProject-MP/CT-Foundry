@@ -1,0 +1,9 @@
+{
+  "name": "ct-foundry",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/repo-state-inspector.test.mjs",
+    "inspect": "node capabilities/repo-state-inspector/inspect.mjs"
+  }
+}
