@@ -13,7 +13,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation and el
 
 ## Current milestone
 
-**E1.S2 - state-signal extraction.** The inspector is kept after four real repository runs. Its new heading-based state signals are mechanically verified and await evaluation during the next real implementation task.
+**E1.S2 - state-signal extraction.** The inspector is kept after four real repository runs. Its new heading-based state signals were used during this Foundry continuation to select the next story; they remain under evaluation because the mandatory full `STATE.md` read was still appropriate.
 
 ## Observations
 
@@ -49,3 +49,10 @@ Find recurring work, friction, or capability gaps in Celestan's operation and el
 ## Next action
 
 Use the inspector with state signals at the start of the next repository task. Record what manual reading it made unnecessary, what it missed, and whether E1.S2 should be kept, revised, or discarded.
+
+## Release
+
+- Initial commit: `e00eba3` (`Initialize CT-Foundry capability workshop`).
+- Remote: `https://github.com/MidnightProject-MP/CT-Foundry`.
+- Branch: `main`, pushed and tracking `origin/main`.
+- Working tree: clean after remote verification.

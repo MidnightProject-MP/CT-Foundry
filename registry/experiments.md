@@ -16,4 +16,4 @@
 - **Smallest test:** Use the signal report at the beginning of the next real implementation task and compare the manual reads it replaces with the signals it misses.
 - **Success signal:** The next task can identify current direction, stopping point, and next action with fewer full-file reads and no consequential omission.
 - **Failure signal:** Signals are noisy, misleading, or too dependent on heading conventions; narrow or retire the extension rather than adding semantic inference.
-- **Current result:** Three local tests pass and real reports are readable. Real-task evaluation is pending.
+- **Current result:** Three local tests pass and real reports are readable. The signals informed this Foundry continuation and exposed current direction in Celestan and SuperSimpleGames, but the mandatory full state read remained useful. Keep the trial open.
