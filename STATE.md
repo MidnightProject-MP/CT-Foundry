@@ -2,7 +2,7 @@
 
 ## Objective
 
-Find recurring work, friction, or capability gaps in Celestan's operation and eliminate them through the simplest reliable external capability.
+Find recurring work, friction, or capability gaps in Celestan's operation, and identify external advances that expand its action space, then acquire the simplest reliable capability.
 
 ## Planning hierarchy
 
@@ -11,10 +11,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation and el
 - **Story E1.S1:** build and evaluate a read-only repository-state inspector. **Complete and kept.**
 - **Story E1.S2:** add compact signals from durable Markdown state files. **Implemented; real-task evaluation pending.**
 - **Story E1.S3:** inventory nested project roots and their direct ecosystem/verification markers. **Implemented; sampled on three additional real repositories; promotion evidence pending.**
+- **Policy E1.S4:** establish a bounded Capability Radar lane and maturity states for external opportunities. **Defined; first evaluation pending.**
 
 ## Current milestone
 
-**E1.S3 - nested project inventory.** The inspector now reports bounded nested project markers and package scripts without executing commands. It has been sampled on Radius-API-DataService, Radius, and AutomatedReports; real-task usefulness and noise level remain under evaluation.
+**E1.S4 - Capability Radar policy.** Foundry now has explicit demand-driven and frontier acquisition lanes, with `Available` separated from `Preferred`. No external opportunity has been evaluated yet.
 
 ## Observations
 
@@ -26,6 +27,9 @@ Find recurring work, friction, or capability gaps in Celestan's operation and el
 - File discovery still left manual reading of durable state necessary. The state-signal extension now extracts bounded content for objective, milestone/status, next action, open questions, and evidence-gap headings without attempting semantic summarization.
 - Root-only inspection missed executable surfaces in nested directories: `Radius-API-DataService/app`, its Terraform environments/modules, `Radius/Radius-source`, and `Radius/Scheduling-Microservice`.
 - Nested inventory found those surfaces and their direct markers, while excluding `AutomatedReports/.venv`. `AutomatedReports/main.py` remains intentionally unclassified because a lone script is not enough evidence of a project verification contract.
+- A capability may be worth retaining before repeated demand when its option value is high and its retention risk and cost are low; this is recorded as `Available`, not `Preferred`.
+- The preferred repository-state inspector was promoted to `C:\Celestan\capabilities\repo-state-inspector` as a thin entry point over the Foundry source; the external directory was empty before this promotion.
+- Direct promotion testing exposed and localized a Git status parsing defect: trimming command output removed the leading porcelain status column on the first line. Status output now preserves leading whitespace while other Git values remain normalized.
 
 ## Decisions
 
@@ -37,11 +41,18 @@ Find recurring work, friction, or capability gaps in Celestan's operation and el
 - The repository-state inspector is kept: repeated real use demonstrated useful low-risk evidence collection without project-specific assumptions.
 - State signals remain deterministic and bounded; a missing or differently structured `STATE.md` is evidence, not an invitation to manufacture project state.
 - Nested project inventory is evidence-only, depth-bounded, skips common generated/vendor/environment directories, and never runs discovered commands.
+- Foundry operates two lanes: demand-driven work justified by repeated evidence, and a bounded Capability Radar lane justified by evaluated frontier opportunity.
+- Capability maturity is `Discovered -> Evaluated -> Available -> Proven -> Preferred`; discovery and availability never silently change default Celestan behavior.
+- Foundry is responsible for obsolescence review and may retire a homegrown capability when a maintained external replacement is materially better.
+- Directly discoverable promotion should preserve one tested implementation where practical; wrappers must make their source, limitations, and invocation explicit.
+- A directly invoked capability is an important integration test: it can expose deployment and interface defects that source-level tests miss.
 
 ## Open questions
 
 - Does the report remove enough archaeology to justify keeping the capability after real use?
 - Which missing signals, if any, recur after the inspector is used on several different repositories?
+- Which single high-option-value external capability is worth the first bounded Radar evaluation?
+- What practical frontier-work budget and review cadence preserve curiosity without creating a shiny-object backlog?
 
 ## Evidence gaps
 
@@ -53,7 +64,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation and el
 
 ## Next action
 
-Use the inspector with state signals and nested inventory at the start of the next repository task. Record what manual reading it made unnecessary, what it missed, and whether E1.S3 should be kept, revised, or discarded.
+Use the inspector with state signals and nested inventory at the start of the next repository task. Separately, select one high-option-value Radar candidate, perform a bounded evaluation, and record whether it should remain Evaluated, become Available, or be discarded.
 
 ## Release
 
@@ -63,4 +74,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - E1.S3 is implemented, mechanically verified, and sampled on three real repositories. Promotion still requires evidence from the next real implementation task; no target task is currently available, and adding more machinery would be invented work.
+`AUTONOMY_IDLE` - The preferred inspector is directly discoverable, its wrapper was exercised, and its Git status defect was repaired with regression coverage. No Radar candidate is currently selected; adding discovery machinery before a candidate and budget exist would be invented work.

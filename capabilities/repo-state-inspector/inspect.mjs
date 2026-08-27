@@ -99,15 +99,16 @@ function isFile(filePath) {
   }
 }
 
-function runGit(args, cwd) {
+function runGit(args, cwd, preserveWhitespace = false) {
   try {
+    const output = execFileSync('git', args, {
+      cwd,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    });
     return {
       ok: true,
-      value: execFileSync('git', args, {
-        cwd,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore']
-      }).trim()
+      value: preserveWhitespace ? output.replace(/\r?\n$/, '') : output.trim()
     };
   } catch (error) {
     return {
@@ -265,7 +266,7 @@ function inspectGit(root) {
   const repositoryRoot = path.resolve(repositoryRootResult.value);
   const branchResult = runGit(['symbolic-ref', '--quiet', '--short', 'HEAD'], root);
   const commitResult = runGit(['rev-parse', '--short', 'HEAD'], root);
-  const statusResult = runGit(['status', '--short', '--untracked-files=all'], root);
+  const statusResult = runGit(['status', '--short', '--untracked-files=all'], root, true);
   const statusLines = statusResult.ok && statusResult.value ? statusResult.value.split(/\r?\n/) : [];
   const entries = statusLines.filter(Boolean).map((line) => ({
     code: line.slice(0, 2),
