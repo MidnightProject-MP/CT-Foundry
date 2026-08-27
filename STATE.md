@@ -9,15 +9,15 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Project:** CT-Foundry - improve Celestan's operational environment through the simplest reliable external capabilities.
 - **Epic E1:** deterministic repository reconstruction.
 - **Story E1.S1:** build and evaluate a read-only repository-state inspector. **Complete and kept.**
-- **Story E1.S2:** add compact signals from durable Markdown state files. **Implemented; real-task evaluation pending.**
-- **Story E1.S3:** inventory nested project roots and their direct ecosystem/verification markers. **Implemented; sampled on three additional real repositories; promotion evidence pending.**
-- **Policy E1.S4:** establish a bounded Capability Radar lane and maturity states for external opportunities. **Defined; first evaluation pending.**
+- **Story E1.S2:** add compact signals from durable Markdown state files. **Implemented; real-task evidence gathered; retained as bounded trial.**
+- **Story E1.S3:** inventory nested project roots and their direct ecosystem/verification markers. **Implemented; real-task evidence gathered; promotion evidence remains incomplete.**
+- **Policy E1.S4:** establish a bounded Capability Radar lane and maturity states for external opportunities. **Complete.**
 - **Evaluation E1.S5:** bounded evaluation of a reusable browser automation frontier capability. **Playwright MCP evaluated; not promoted.**
 - **Evaluation E1.S6:** bounded evaluation of a coding-agent browser CLI. **Playwright CLI evaluated; runtime failure observed; not promoted.**
 
 ## Current milestone
 
-**E1.S6 - browser CLI radar evaluation.** Playwright CLI is promisingly aligned with coding-agent workflows, but the pinned `0.1.18` probe reproducibly triggers a Windows Node/libuv assertion after output. It remains `Evaluated`, not `Available`.
+**E1.S6 - browser CLI radar evaluation.** Playwright CLI is promisingly aligned with coding-agent workflows, but the pinned `0.1.18` probe reproducibly triggers a Windows Node/libuv assertion after output. It remains `Evaluated`, not `Available`; Foundry is idle pending a changed runtime, release, or concrete browser need.
 
 ## Observations
 
@@ -60,7 +60,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 
 - Does the report remove enough archaeology to justify keeping the capability after real use?
 - Which missing signals, if any, recur after the inspector is used on several different repositories?
-- Which single high-option-value external capability is worth the first bounded Radar evaluation?
+- Which future high-option-value external capability, if any, warrants the next bounded Radar evaluation?
 - What practical frontier-work budget and review cadence preserve curiosity without creating a shiny-object backlog?
 - Would a future task require persistent browser context, self-healing exploration, or a client-independent browser service that current in-app control cannot provide?
 - Does a later pinned Playwright CLI release or runtime eliminate the Windows assertion and complete a representative local browser task cleanly?
@@ -89,4 +89,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - `RAD-001` and `RAD-002` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion. The inspector is directly discoverable and verified, and no clean representative browser CLI task currently justifies installation.
+`AUTONOMY_IDLE` - `RAD-001` and `RAD-002` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion. The inspector is directly discoverable and verified, and no clean representative browser CLI task or new Radar candidate currently justifies further work.

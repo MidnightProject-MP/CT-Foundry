@@ -7,7 +7,7 @@
 - **Smallest test:** Run the inspector on a repository with known state, compare its report with the manual first-pass inspection, then use it at the beginning of the next real task.
 - **Success signal:** The next task can begin with fewer manual discovery reads, and no important starting-state fact is missed.
 - **Failure signal:** The report is noisy, expensive, misleading, or still requires the same archaeology; retire or narrow it rather than adding a framework around it.
-- **Current result:** The inspector is kept after three local tests and four real repository runs. It found state files, package verification, and CI, and exposed an existing Git safe-directory restriction without modifying inspected projects. Time saved remains unmeasured.
+- **Current result:** The inspector is kept after five local tests and repeated real repository runs. It found state files, package verification, CI, nested projects, and Git safety/access conditions without modifying inspected projects. Time saved remains unmeasured.
 
 ## EXP-002 - bounded state signals
 
@@ -16,7 +16,7 @@
 - **Smallest test:** Use the signal report at the beginning of the next real implementation task and compare the manual reads it replaces with the signals it misses.
 - **Success signal:** The next task can identify current direction, stopping point, and next action with fewer full-file reads and no consequential omission.
 - **Failure signal:** Signals are noisy, misleading, or too dependent on heading conventions; narrow or retire the extension rather than adding semantic inference.
-- **Current result:** Three local tests pass and real reports are readable. The signals informed this Foundry continuation and exposed current direction in Celestan and SuperSimpleGames, but the mandatory full state read remained useful. Keep the trial open.
+- **Current result:** Real reports are readable and the signal extension remains bounded. It exposes useful recognized headings and labels, but the mandatory full state read remains useful; keep the trial open.
 
 ## EXP-003 - nested project inventory
 
@@ -25,7 +25,7 @@
 - **Smallest test:** Run the inventory on repositories with nested application, infrastructure, and multi-language projects, then compare its output with manual archaeology.
 - **Success signal:** The report identifies the real nested verification surfaces with less manual directory traversal and acceptable noise.
 - **Failure signal:** Nested output is too noisy, too slow, or misleading; narrow marker categories or retire the extension rather than adding inference.
-- **Current result:** Four local tests pass. Real runs found `app` and Terraform units in Radius-API-DataService, .NET and Node projects in Radius, and correctly excluded AutomatedReports' `.venv`. A script-only Python root remains an explicit limitation; promotion is pending a real implementation task.
+- **Current result:** Real runs found `app` and Terraform units in Radius-API-DataService, .NET and Node projects in Radius, and correctly excluded AutomatedReports' `.venv`. A script-only Python root remains an explicit limitation; promotion evidence remains incomplete.
 
 ## EXP-004 - labeled state signals
 
