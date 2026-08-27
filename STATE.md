@@ -30,6 +30,8 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - A capability may be worth retaining before repeated demand when its option value is high and its retention risk and cost are low; this is recorded as `Available`, not `Preferred`.
 - The preferred repository-state inspector was promoted to `C:\Celestan\capabilities\repo-state-inspector` as a thin entry point over the Foundry source; the external directory was empty before this promotion.
 - Direct promotion testing exposed and localized a Git status parsing defect: trimming command output removed the leading porcelain status column on the first line. Status output now preserves leading whitespace while other Git values remain normalized.
+- Real-task evaluation on BorderCrossing found a state-shape gap: its durable state uses labeled bullet records, so heading-only extraction returned no signals. A narrow recognized-label fallback now exposes objective/status/next-action records without parsing arbitrary prose.
+- The same run showed repeated historical `Next Story:` records; labeled fallback extraction now keeps only the latest record per signal kind to avoid presenting stale history as concurrent current state.
 
 ## Decisions
 
@@ -46,6 +48,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Foundry is responsible for obsolescence review and may retire a homegrown capability when a maintained external replacement is materially better.
 - Directly discoverable promotion should preserve one tested implementation where practical; wrappers must make their source, limitations, and invocation explicit.
 - A directly invoked capability is an important integration test: it can expose deployment and interface defects that source-level tests miss.
+- State signal extraction may support only explicitly recognized headings and labels; missing or unconventional state remains evidence, not an invitation to infer intent.
 
 ## Open questions
 
@@ -61,6 +64,8 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - The neighboring project's Git metadata is inaccessible to the current Windows identity because Git's safe-directory check rejects its ownership; Foundry did not change that configuration.
 - Heading extraction can miss projects that store state in prose, non-Markdown files, or unconventional headings; it is not semantic project understanding.
 - Nested marker output can still be noisy in large multi-project repositories, especially Terraform modules and .NET project trees; no promotion decision is made from the sample alone.
+- Labeled state signals have fixture and one real-project coverage, but their usefulness and noise level need another real cold-start task.
+- Latest-record collapsing is deterministic but assumes later labeled records supersede earlier ones; projects with a different chronology may still need a narrower explicit state format.
 
 ## Next action
 

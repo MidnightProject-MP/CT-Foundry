@@ -26,3 +26,12 @@
 - **Success signal:** The report identifies the real nested verification surfaces with less manual directory traversal and acceptable noise.
 - **Failure signal:** Nested output is too noisy, too slow, or misleading; narrow marker categories or retire the extension rather than adding inference.
 - **Current result:** Four local tests pass. Real runs found `app` and Terraform units in Radius-API-DataService, .NET and Node projects in Radius, and correctly excluded AutomatedReports' `.venv`. A script-only Python root remains an explicit limitation; promotion is pending a real implementation task.
+
+## EXP-004 - labeled state signals
+
+- **Question:** Can a narrow fallback for recognized `Label: value` bullet records expose durable state from projects that do not use section headings?
+- **Hypothesis:** Mapping only a small set of known labels to existing signal kinds will improve cold-start observation without semantic parsing or arbitrary summarization.
+- **Smallest test:** Run the inspector on a bullet-record fixture and on a real project whose state uses labeled bullets, then compare the signals with manual reading.
+- **Success signal:** Objective, status, and next-action evidence becomes visible for that state shape without adding noise from unrelated labels.
+- **Failure signal:** Label collisions, duplication, or misleading extraction outweigh the missing visibility; remove the fallback rather than expanding it into semantic inference.
+- **Current result:** The fixture and BorderCrossing run expose recognized labels such as `Status` and the latest `Next Story`; repeated historical labels are collapsed to the latest record and arbitrary labels remain excluded. Real-task usefulness remains to be checked on a subsequent cold start.

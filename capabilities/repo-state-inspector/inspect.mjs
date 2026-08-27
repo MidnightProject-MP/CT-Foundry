@@ -71,8 +71,10 @@ const STATE_SIGNAL_HEADINGS = new Map([
   ['objective', 'objective'],
   ['current milestone', 'current milestone'],
   ['current status', 'current status'],
+  ['status', 'current status'],
   ['next action', 'next action'],
   ['next immediate action', 'next action'],
+  ['next story', 'next action'],
   ['open questions', 'open questions'],
   ['evidence gaps', 'evidence gaps']
 ]);
@@ -223,6 +225,26 @@ function extractStateSignals(root, stateFiles) {
         };
       })
       .filter(Boolean);
+
+    const labeledSignals = new Map();
+    for (const [index, line] of lines.entries()) {
+      const match = /^\s*[-*]\s+(?:\*\*)?([^:*]+?)(?:\*\*)?:\s*(.+?)\s*$/.exec(line);
+      if (!match) {
+        continue;
+      }
+      const kind = STATE_SIGNAL_HEADINGS.get(match[1].trim().toLowerCase());
+      if (kind) {
+        labeledSignals.set(kind, {
+          kind,
+          heading: match[1].trim(),
+          line: index + 1,
+          text: match[2].trim().length > 800 ? `${match[2].trim().slice(0, 797)}...` : match[2].trim()
+        });
+      }
+    }
+
+    signals.push(...labeledSignals.values());
+    signals.sort((left, right) => left.line - right.line);
 
     if (signals.length) {
       documents.push({ file, signals });

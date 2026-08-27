@@ -84,6 +84,22 @@ test('reports bounded nested project markers and package scripts', () => {
   assert.match(renderMarkdown(report), /`app`/);
 });
 
+test('reports recognized state labels when a project uses bullet records', () => {
+  const root = fixtureDirectory();
+  fs.writeFileSync(path.join(root, 'STATE.md'), '- Objective: Preserve evidence.\n- Current Status: Evaluation remains bounded.\n- Next Story: Run the comparison.\n- Unrecognized: Ignore this.\n');
+
+  const report = inspect(root);
+
+  assert.deepEqual(report.stateSignals, [{
+    file: 'STATE.md',
+    signals: [
+      { kind: 'objective', heading: 'Objective', line: 1, text: 'Preserve evidence.' },
+      { kind: 'current status', heading: 'Current Status', line: 2, text: 'Evaluation remains bounded.' },
+      { kind: 'next action', heading: 'Next Story', line: 3, text: 'Run the comparison.' }
+    ]
+  }]);
+});
+
 test('reports a missing target as an actionable error', () => {
   assert.throws(
     () => inspect(path.join(os.tmpdir(), 'ct-foundry-inspector-does-not-exist')),
