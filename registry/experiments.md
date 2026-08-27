@@ -53,3 +53,12 @@
 - **Success signal:** Pinned invocations exit cleanly and a representative local browser task can be performed with lower orchestration/context overhead than current control.
 - **Failure signal:** Repeatable runtime failure, unsafe state handling, or no material action-space improvement; retain only as an evaluated candidate.
 - **Current result:** Remains `Evaluated`. Version `0.1.18` printed successfully, but a Windows Node/libuv `UV_HANDLE_CLOSING` assertion reproduced after the single version probe. No installation or promotion is justified.
+
+## EXP-007 - external agent-skill leaderboard survey
+
+- **Question:** Can external skill leaderboards and community/repository signals identify a high-option-value capability before repeated local demand appears?
+- **Hypothesis:** A bounded review of distribution signals, source documentation, and compatibility/security evidence will produce a useful shortlist without turning Foundry into indiscriminate browsing.
+- **Smallest test:** Review the skills.sh leaderboard, inspect the highest-relevance browser, verification, debugging, and development skills, compare with OpenCode's native skill model, and attempt a Reddit community signal check without installing anything.
+- **Success signal:** A candidate reveals a materially missing action space, or a recurring reusable method is strong enough to warrant a separately bounded evaluation.
+- **Failure signal:** Rankings are too noisy, inaccessible, duplicative, or unsupported by task evidence; retain the survey as negative discovery evidence and do not install candidates.
+- **Current result:** The survey produced a shortlist but no promotion candidate. `agent-browser` overlaps the unresolved Playwright path; `tdd`, `systematic-debugging`, and `verification-before-completion` overlap practices already enforced locally. Reddit results were not usable because search/API access returned no evidence/403. Keep `RAD-003` evaluated and require a concrete task before deeper candidate evaluation.

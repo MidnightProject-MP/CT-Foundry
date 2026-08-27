@@ -14,10 +14,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Policy E1.S4:** establish a bounded Capability Radar lane and maturity states for external opportunities. **Complete.**
 - **Evaluation E1.S5:** bounded evaluation of a reusable browser automation frontier capability. **Playwright MCP evaluated; not promoted.**
 - **Evaluation E1.S6:** bounded evaluation of a coding-agent browser CLI. **Playwright CLI evaluated; runtime failure observed; not promoted.**
+- **Evaluation E1.S7:** external agent-skill leaderboard survey. **Skills.sh, OpenCode docs, GitHub, and attempted Reddit signals reviewed; no candidate promoted.**
 
 ## Current milestone
 
-**E1.S6 - browser CLI radar evaluation.** Playwright CLI is promisingly aligned with coding-agent workflows, but the pinned `0.1.18` probe reproducibly triggers a Windows Node/libuv assertion after output. It remains `Evaluated`, not `Available`; Foundry is idle pending a changed runtime, release, or concrete browser need.
+**E1.S7 - external skill ecosystem survey.** The skills.sh leaderboard and public source/docs produced a shortlist of browser, verification, debugging, TDD, and code-review skills. No candidate currently provides demonstrated incremental value over Celestan's existing practices; all remain uninstalled and unpromoted.
 
 ## Observations
 
@@ -55,6 +56,8 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - State signal extraction may support only explicitly recognized headings and labels; missing or unconventional state remains evidence, not an invitation to infer intent.
 - Radar evaluation requires a concrete action-space comparison against current capabilities; package popularity, feature count, or novelty alone cannot justify installation.
 - A successful command output is insufficient for capability promotion when the process exits with a repeatable runtime assertion.
+- External popularity signals are discovery evidence only. They must be combined with source review, compatibility/security checks, and a representative Celestan task before installation or promotion.
+- Reddit is an optional community signal, not a reliable sole source: this survey's Reddit search/API attempts returned unusable content or 403, so no Reddit claim was treated as evidence.
 
 ## Open questions
 
@@ -64,6 +67,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - What practical frontier-work budget and review cadence preserve curiosity without creating a shiny-object backlog?
 - Would a future task require persistent browser context, self-healing exploration, or a client-independent browser service that current in-app control cannot provide?
 - Does a later pinned Playwright CLI release or runtime eliminate the Windows assertion and complete a representative local browser task cleanly?
+- Which specific external skill, if any, demonstrates measurable incremental value on a Celestan task after isolated review?
 
 ## Evidence gaps
 
@@ -76,10 +80,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Latest-record collapsing is deterministic but assumes later labeled records supersede earlier ones; projects with a different chronology may still need a narrower explicit state format.
 - Playwright MCP has no representative Celestan task evidence beyond documentation comparison; its `Evaluated` state must not be treated as an available default.
 - Playwright CLI has no representative task evidence and currently fails its clean-process probe; do not install or register it until that boundary changes.
+- The external skill survey has distribution and documentation evidence but no Celestan task benchmark; leaderboard ranking must not be mistaken for quality, safety, or fit.
 
 ## Next action
 
-Use the inspector with state signals and nested inventory at the start of the next repository task. Reconsider `RAD-001` only when a concrete persistent browser task appears, and `RAD-002` only after a clean pinned runtime probe; otherwise select the next candidate from observed friction rather than browsing for novelty.
+Use the inspector with state signals and nested inventory at the start of the next repository task. Reconsider `RAD-001` only when a concrete persistent browser task appears, `RAD-002` only after a clean pinned runtime probe, and `RAD-003` only when a named skill has a representative Celestan task and an isolated evaluation plan; otherwise select the next candidate from observed friction rather than browsing for novelty.
 
 ## Release
 
@@ -89,4 +94,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - `RAD-001` and `RAD-002` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion. The inspector is directly discoverable and verified, and no clean representative browser CLI task or new Radar candidate currently justifies further work.
+`AUTONOMY_IDLE` - `RAD-001`, `RAD-002`, and `RAD-003` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion, and `RAD-003` produced no candidate with demonstrated incremental value. The inspector is directly discoverable and verified, and no clean representative browser CLI task or named skill evaluation currently justifies further work.
