@@ -44,3 +44,12 @@
 - **Success signal:** A concrete capability unavailable through current browser control justifies a low-risk isolated installation.
 - **Failure signal:** Feature overlap, client/configuration dependency, or security/maintenance cost outweighs option value; retain only as an evaluated future candidate.
 - **Current result:** Remains `Evaluated` in `registry/radar.md`. Official documentation confirms persistent accessibility-tree automation and optional PDF/vision/devtools, but recommends CLI-plus-skills for coding-agent token efficiency and warns MCP is not a security boundary. No concrete missing action or installation justification was found.
+
+## EXP-006 - Playwright CLI radar evaluation
+
+- **Question:** Does Playwright CLI provide a safer, more token-efficient reusable browser-verification path for Celestan's recurring coding-agent work?
+- **Hypothesis:** A command-line interface with skills and named sessions may fit coding-agent workflows better than MCP, but runtime stability, browser state, supply-chain pinning, and local profile handling must be proven.
+- **Smallest test:** Read the official repository and npm metadata, then run pinned `--help` and `--version` probes without global installation, browser launch, skill installation, or agent configuration changes.
+- **Success signal:** Pinned invocations exit cleanly and a representative local browser task can be performed with lower orchestration/context overhead than current control.
+- **Failure signal:** Repeatable runtime failure, unsafe state handling, or no material action-space improvement; retain only as an evaluated candidate.
+- **Current result:** Remains `Evaluated`. Version `0.1.18` printed successfully, but a Windows Node/libuv `UV_HANDLE_CLOSING` assertion reproduced after the single version probe. No installation or promotion is justified.

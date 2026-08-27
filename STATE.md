@@ -13,10 +13,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Story E1.S3:** inventory nested project roots and their direct ecosystem/verification markers. **Implemented; sampled on three additional real repositories; promotion evidence pending.**
 - **Policy E1.S4:** establish a bounded Capability Radar lane and maturity states for external opportunities. **Defined; first evaluation pending.**
 - **Evaluation E1.S5:** bounded evaluation of a reusable browser automation frontier capability. **Playwright MCP evaluated; not promoted.**
+- **Evaluation E1.S6:** bounded evaluation of a coding-agent browser CLI. **Playwright CLI evaluated; runtime failure observed; not promoted.**
 
 ## Current milestone
 
-**E1.S5 - browser automation radar evaluation.** Playwright MCP was compared with Celestan's existing in-app browser control and remains `Evaluated`, not `Available`, because its documented strengths overlap current control and its MCP/persistent-profile security surface is not yet justified by a concrete task.
+**E1.S6 - browser CLI radar evaluation.** Playwright CLI is promisingly aligned with coding-agent workflows, but the pinned `0.1.18` probe reproducibly triggers a Windows Node/libuv assertion after output. It remains `Evaluated`, not `Available`.
 
 ## Observations
 
@@ -34,6 +35,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Real-task evaluation on BorderCrossing found a state-shape gap: its durable state uses labeled bullet records, so heading-only extraction returned no signals. A narrow recognized-label fallback now exposes objective/status/next-action records without parsing arbitrary prose.
 - The same run showed repeated historical `Next Story:` records; labeled fallback extraction now keeps only the latest record per signal kind to avoid presenting stale history as concurrent current state.
 - Browser verification recurs in SuperSimpleGames and BorderCrossing, making browser automation a valid Radar target. Official Playwright MCP documentation describes useful persistent structured-browser workflows, but also says CLI-plus-skills is more token-efficient for coding agents and warns that MCP is not a security boundary.
+- The official Playwright CLI documentation describes named sessions, token-efficient snapshots, screenshots, traces, network inspection, and coding-agent skills. `npx --yes @playwright/cli@0.1.18 --version` and `--help` print successfully but reproduce a Windows `UV_HANDLE_CLOSING` assertion afterward.
 
 ## Decisions
 
@@ -52,6 +54,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - A directly invoked capability is an important integration test: it can expose deployment and interface defects that source-level tests miss.
 - State signal extraction may support only explicitly recognized headings and labels; missing or unconventional state remains evidence, not an invitation to infer intent.
 - Radar evaluation requires a concrete action-space comparison against current capabilities; package popularity, feature count, or novelty alone cannot justify installation.
+- A successful command output is insufficient for capability promotion when the process exits with a repeatable runtime assertion.
 
 ## Open questions
 
@@ -60,6 +63,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Which single high-option-value external capability is worth the first bounded Radar evaluation?
 - What practical frontier-work budget and review cadence preserve curiosity without creating a shiny-object backlog?
 - Would a future task require persistent browser context, self-healing exploration, or a client-independent browser service that current in-app control cannot provide?
+- Does a later pinned Playwright CLI release or runtime eliminate the Windows assertion and complete a representative local browser task cleanly?
 
 ## Evidence gaps
 
@@ -71,10 +75,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Labeled state signals have fixture and one real-project coverage, but their usefulness and noise level need another real cold-start task.
 - Latest-record collapsing is deterministic but assumes later labeled records supersede earlier ones; projects with a different chronology may still need a narrower explicit state format.
 - Playwright MCP has no representative Celestan task evidence beyond documentation comparison; its `Evaluated` state must not be treated as an available default.
+- Playwright CLI has no representative task evidence and currently fails its clean-process probe; do not install or register it until that boundary changes.
 
 ## Next action
 
-Use the inspector with state signals and nested inventory at the start of the next repository task. Reconsider `RAD-001` only when a concrete persistent or client-independent browser task appears; otherwise select the next candidate from observed friction rather than browsing for novelty.
+Use the inspector with state signals and nested inventory at the start of the next repository task. Reconsider `RAD-001` only when a concrete persistent browser task appears, and `RAD-002` only after a clean pinned runtime probe; otherwise select the next candidate from observed friction rather than browsing for novelty.
 
 ## Release
 
@@ -84,4 +89,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - `RAD-001` was boundedly evaluated and deliberately not promoted. The inspector is directly discoverable and verified; no concrete task currently justifies installing a second browser automation surface.
+`AUTONOMY_IDLE` - `RAD-001` and `RAD-002` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion. The inspector is directly discoverable and verified, and no clean representative browser CLI task currently justifies installation.

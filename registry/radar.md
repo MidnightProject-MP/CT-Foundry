@@ -21,6 +21,7 @@ States may move to `Retired` at any point when risk, cost, obsolescence, or fail
 | ID | Capability | State | Source | Option value | Next evidence | Direct location |
 | --- | --- | --- | --- | --- | --- | --- |
 | `RAD-001` | Playwright MCP | Evaluated | [Microsoft repository](https://github.com/microsoft/playwright-mcp) (checked 2026-08-27); npm `@playwright/mcp` 0.0.79 | Persistent browser context, structured accessibility automation, optional PDF/vision/devtools, and MCP interoperability could support long-running exploratory browser workflows. | Reconsider only if OpenCode needs persistent browser state, self-healing exploration, or a client-independent browser service that current control cannot provide. | Not installed |
+| `RAD-002` | Playwright CLI with skills | Evaluated | [Microsoft repository](https://github.com/microsoft/playwright-cli) (checked 2026-08-27); npm `@playwright/cli` 0.1.18 | Token-efficient command-line browser sessions, named sessions, screenshots, traces, network inspection, and reusable coding-agent skills could reduce browser-verification orchestration overhead. | Re-test after a materially different Node/package runtime or when a concrete browser workflow justifies isolation and a pinned install. | Not installed |
 
 ### RAD-001 decision
 
@@ -30,6 +31,16 @@ States may move to `Retired` at any point when risk, cost, obsolescence, or fail
 - **Security:** It is explicitly not a security boundary. Persistent profiles can retain logged-in state; unrestricted file access, origins, permissions, CDP endpoints, shared contexts, and remote transports require deliberate configuration. `--isolated`, host/origin restrictions, and client-level permissions are necessary guardrails.
 - **Bounded test:** Compared its documented core, persistence, configuration, and security model with Celestan's available in-app browser control and repeated browser verification in SuperSimpleGames and BorderCrossing.
 - **Decision:** Remain `Evaluated`, not `Available`. The documented strengths overlap the current browser capability, and the installation/configuration/security surface is not justified without a concrete persistent-browser task. Preserve as a future replacement/extension candidate rather than installing it speculatively.
+
+### RAD-002 decision
+
+- **Question:** Does Playwright CLI provide a safer, more token-efficient reusable browser-verification path for Celestan's recurring coding-agent work?
+- **Cost:** The inspected npm package is Apache-2.0 and 100,002 bytes unpacked. `npx --yes @playwright/cli@0.1.18` avoids a global install but still incurs package resolution and browser/runtime costs; no paid commitment was made.
+- **Constraints:** Requires Node.js 18+ and a coding-agent skill or equivalent command knowledge. Sessions are in-memory by default, while persistent profiles and saved traces/screenshots create local state that needs ownership and cleanup.
+- **Security:** Browser sessions can hold cookies and storage state; persistent profiles, file upload, CDP attachment, network routing, and arbitrary evaluation require explicit isolation and client permissions. Package execution through `npx` also adds supply-chain and version-drift risk unless pinned.
+- **Bounded test:** Read the official CLI documentation and queried npm metadata, then ran the pinned help and version commands without global installation, browser launch, skill installation, or agent configuration changes.
+- **Result:** Both probes printed the expected CLI output/version, but a Windows Node/libuv assertion (`UV_HANDLE_CLOSING`) reproduced after the single version invocation. This is an operational failure at the current environment boundary.
+- **Decision:** Remain `Evaluated`, not `Available`. The CLI is promising and better aligned than MCP with coding-agent token economics, but it cannot be promoted until a pinned isolated invocation exits cleanly and completes a representative browser task.
 
 ## Evaluation record
 
