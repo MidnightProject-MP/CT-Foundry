@@ -100,12 +100,15 @@ test('reports available Git status without changing the worktree', (context) => 
     return;
   }
   fs.writeFileSync(path.join(root, 'README.md'), '# fixture\n');
+  execFileSync('git', ['add', 'README.md'], { cwd: root, stdio: 'ignore' });
+  fs.appendFileSync(path.join(root, 'README.md'), 'changed\n');
 
   const report = inspect(root);
 
   assert.equal(report.git.isRepository, true);
   assert.equal(report.git.status, 'available');
   assert.equal(report.git.dirty, true);
-  assert.equal(report.git.untrackedFiles, 1);
+  assert.equal(report.git.changedFiles, 1);
+  assert.equal(report.git.untrackedFiles, 0);
   assert.deepEqual(report.git.paths, ['README.md']);
 });
