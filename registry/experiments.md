@@ -35,3 +35,12 @@
 - **Success signal:** Objective, status, and next-action evidence becomes visible for that state shape without adding noise from unrelated labels.
 - **Failure signal:** Label collisions, duplication, or misleading extraction outweigh the missing visibility; remove the fallback rather than expanding it into semantic inference.
 - **Current result:** The fixture and BorderCrossing run expose recognized labels such as `Status` and the latest `Next Story`; repeated historical labels are collapsed to the latest record and arbitrary labels remain excluded. Real-task usefulness remains to be checked on a subsequent cold start.
+
+## EXP-005 - Playwright MCP radar evaluation
+
+- **Question:** Does Playwright MCP materially expand Celestan's reusable browser-verification action space beyond current in-app browser control?
+- **Hypothesis:** Persistent structured browser context and MCP interoperability may enable long-running exploratory workflows, but may duplicate current control and add token, process, profile, and security costs.
+- **Smallest test:** Compare the official repository and npm package metadata with browser verification needs evidenced in SuperSimpleGames and BorderCrossing; do not install or configure a client.
+- **Success signal:** A concrete capability unavailable through current browser control justifies a low-risk isolated installation.
+- **Failure signal:** Feature overlap, client/configuration dependency, or security/maintenance cost outweighs option value; retain only as an evaluated future candidate.
+- **Current result:** Remains `Evaluated` in `registry/radar.md`. Official documentation confirms persistent accessibility-tree automation and optional PDF/vision/devtools, but recommends CLI-plus-skills for coding-agent token efficiency and warns MCP is not a security boundary. No concrete missing action or installation justification was found.

@@ -12,10 +12,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Story E1.S2:** add compact signals from durable Markdown state files. **Implemented; real-task evaluation pending.**
 - **Story E1.S3:** inventory nested project roots and their direct ecosystem/verification markers. **Implemented; sampled on three additional real repositories; promotion evidence pending.**
 - **Policy E1.S4:** establish a bounded Capability Radar lane and maturity states for external opportunities. **Defined; first evaluation pending.**
+- **Evaluation E1.S5:** bounded evaluation of a reusable browser automation frontier capability. **Playwright MCP evaluated; not promoted.**
 
 ## Current milestone
 
-**E1.S4 - Capability Radar policy.** Foundry now has explicit demand-driven and frontier acquisition lanes, with `Available` separated from `Preferred`. No external opportunity has been evaluated yet.
+**E1.S5 - browser automation radar evaluation.** Playwright MCP was compared with Celestan's existing in-app browser control and remains `Evaluated`, not `Available`, because its documented strengths overlap current control and its MCP/persistent-profile security surface is not yet justified by a concrete task.
 
 ## Observations
 
@@ -32,6 +33,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Direct promotion testing exposed and localized a Git status parsing defect: trimming command output removed the leading porcelain status column on the first line. Status output now preserves leading whitespace while other Git values remain normalized.
 - Real-task evaluation on BorderCrossing found a state-shape gap: its durable state uses labeled bullet records, so heading-only extraction returned no signals. A narrow recognized-label fallback now exposes objective/status/next-action records without parsing arbitrary prose.
 - The same run showed repeated historical `Next Story:` records; labeled fallback extraction now keeps only the latest record per signal kind to avoid presenting stale history as concurrent current state.
+- Browser verification recurs in SuperSimpleGames and BorderCrossing, making browser automation a valid Radar target. Official Playwright MCP documentation describes useful persistent structured-browser workflows, but also says CLI-plus-skills is more token-efficient for coding agents and warns that MCP is not a security boundary.
 
 ## Decisions
 
@@ -49,6 +51,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Directly discoverable promotion should preserve one tested implementation where practical; wrappers must make their source, limitations, and invocation explicit.
 - A directly invoked capability is an important integration test: it can expose deployment and interface defects that source-level tests miss.
 - State signal extraction may support only explicitly recognized headings and labels; missing or unconventional state remains evidence, not an invitation to infer intent.
+- Radar evaluation requires a concrete action-space comparison against current capabilities; package popularity, feature count, or novelty alone cannot justify installation.
 
 ## Open questions
 
@@ -56,6 +59,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Which missing signals, if any, recur after the inspector is used on several different repositories?
 - Which single high-option-value external capability is worth the first bounded Radar evaluation?
 - What practical frontier-work budget and review cadence preserve curiosity without creating a shiny-object backlog?
+- Would a future task require persistent browser context, self-healing exploration, or a client-independent browser service that current in-app control cannot provide?
 
 ## Evidence gaps
 
@@ -66,10 +70,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Nested marker output can still be noisy in large multi-project repositories, especially Terraform modules and .NET project trees; no promotion decision is made from the sample alone.
 - Labeled state signals have fixture and one real-project coverage, but their usefulness and noise level need another real cold-start task.
 - Latest-record collapsing is deterministic but assumes later labeled records supersede earlier ones; projects with a different chronology may still need a narrower explicit state format.
+- Playwright MCP has no representative Celestan task evidence beyond documentation comparison; its `Evaluated` state must not be treated as an available default.
 
 ## Next action
 
-Use the inspector with state signals and nested inventory at the start of the next repository task. Separately, select one high-option-value Radar candidate, perform a bounded evaluation, and record whether it should remain Evaluated, become Available, or be discarded.
+Use the inspector with state signals and nested inventory at the start of the next repository task. Reconsider `RAD-001` only when a concrete persistent or client-independent browser task appears; otherwise select the next candidate from observed friction rather than browsing for novelty.
 
 ## Release
 
@@ -79,4 +84,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - The preferred inspector is directly discoverable, its wrapper was exercised, and its Git status defect was repaired with regression coverage. No Radar candidate is currently selected; adding discovery machinery before a candidate and budget exist would be invented work.
+`AUTONOMY_IDLE` - `RAD-001` was boundedly evaluated and deliberately not promoted. The inspector is directly discoverable and verified; no concrete task currently justifies installing a second browser automation surface.

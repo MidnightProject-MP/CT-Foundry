@@ -20,7 +20,16 @@ States may move to `Retired` at any point when risk, cost, obsolescence, or fail
 
 | ID | Capability | State | Source | Option value | Next evidence | Direct location |
 | --- | --- | --- | --- | --- | --- | --- |
-| _none_ | No external opportunities evaluated yet. | - | - | - | Start with one bounded, high-option-value comparison. | - |
+| `RAD-001` | Playwright MCP | Evaluated | [Microsoft repository](https://github.com/microsoft/playwright-mcp) (checked 2026-08-27); npm `@playwright/mcp` 0.0.79 | Persistent browser context, structured accessibility automation, optional PDF/vision/devtools, and MCP interoperability could support long-running exploratory browser workflows. | Reconsider only if OpenCode needs persistent browser state, self-healing exploration, or a client-independent browser service that current control cannot provide. | Not installed |
+
+### RAD-001 decision
+
+- **Question:** Does Playwright MCP materially expand Celestan's reusable browser-verification action space beyond current in-app browser control?
+- **Cost:** The package is Apache-2.0 and small at the inspected npm distribution size (85,581 bytes), but `npx @playwright/mcp@latest` adds package/browser installation, runtime process, and model-context overhead. No paid commitment was made.
+- **Constraints:** Requires an MCP client and Node.js 18+. The upstream documentation says CLI plus skills is generally more token-efficient for coding agents; MCP is better suited to persistent, introspective, long-running loops.
+- **Security:** It is explicitly not a security boundary. Persistent profiles can retain logged-in state; unrestricted file access, origins, permissions, CDP endpoints, shared contexts, and remote transports require deliberate configuration. `--isolated`, host/origin restrictions, and client-level permissions are necessary guardrails.
+- **Bounded test:** Compared its documented core, persistence, configuration, and security model with Celestan's available in-app browser control and repeated browser verification in SuperSimpleGames and BorderCrossing.
+- **Decision:** Remain `Evaluated`, not `Available`. The documented strengths overlap the current browser capability, and the installation/configuration/security surface is not justified without a concrete persistent-browser task. Preserve as a future replacement/extension candidate rather than installing it speculatively.
 
 ## Evaluation record
 
