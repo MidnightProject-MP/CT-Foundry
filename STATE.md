@@ -58,6 +58,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - A successful command output is insufficient for capability promotion when the process exits with a repeatable runtime assertion.
 - External popularity signals are discovery evidence only. They must be combined with source review, compatibility/security checks, and a representative Celestan task before installation or promotion.
 - Reddit is an optional community signal, not a reliable sole source: this survey's Reddit search/API attempts returned unusable content or 403, so no Reddit claim was treated as evidence.
+- Prefer deterministic, executable verification and debugging capabilities over prompt-only skills whenever the task can be covered mechanically; use external skills to supplement, not replace, fresh command output and reproducible checks.
 
 ## Open questions
 
