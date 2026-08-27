@@ -15,10 +15,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Evaluation E1.S5:** bounded evaluation of a reusable browser automation frontier capability. **Playwright MCP evaluated; not promoted.**
 - **Evaluation E1.S6:** bounded evaluation of a coding-agent browser CLI. **Playwright CLI evaluated; runtime failure observed; not promoted.**
 - **Evaluation E1.S7:** external agent-skill leaderboard survey. **Skills.sh, OpenCode docs, GitHub, and attempted Reddit signals reviewed; no candidate promoted.**
+- **Decision aid E1.S8:** ranked capability idea catalog. **Top ideas scored by fit, option value, evidence, risk, and evaluation effort; no speculative installation.**
 
 ## Current milestone
 
-**E1.S7 - external skill ecosystem survey.** The skills.sh leaderboard and public source/docs produced a shortlist of browser, verification, debugging, TDD, and code-review skills. No candidate currently provides demonstrated incremental value over Celestan's existing practices; all remain uninstalled and unpromoted.
+**E1.S8 - ranked capability idea catalog.** `registry/catalog.md` now ranks proven local capabilities and external candidates by practical fit, option value, evidence, risk, and effort. P0 deterministic practices are routine; P1-P3 entries remain trigger-based options.
 
 ## Observations
 
@@ -59,6 +60,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - External popularity signals are discovery evidence only. They must be combined with source review, compatibility/security checks, and a representative Celestan task before installation or promotion.
 - Reddit is an optional community signal, not a reliable sole source: this survey's Reddit search/API attempts returned unusable content or 403, so no Reddit claim was treated as evidence.
 - Prefer deterministic, executable verification and debugging capabilities over prompt-only skills whenever the task can be covered mechanically; use external skills to supplement, not replace, fresh command output and reproducible checks.
+- Maintain a ranked idea catalog as a decision aid, separating routine capabilities from trigger-based evaluations and unproven retained options. Scores prioritize fit and evidence over popularity.
 
 ## Open questions
 
@@ -85,7 +87,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 
 ## Next action
 
-Use the inspector with state signals and nested inventory at the start of the next repository task. Reconsider `RAD-001` only when a concrete persistent browser task appears, `RAD-002` only after a clean pinned runtime probe, and `RAD-003` only when a named skill has a representative Celestan task and an isolated evaluation plan; otherwise select the next candidate from observed friction rather than browsing for novelty.
+Use the inspector with state signals and nested inventory at the start of the next repository task. Use `registry/catalog.md` to choose among P0 practices and triggered P1-P3 options. Reconsider browser candidates only when a concrete persistent browser task appears, and external skills only when a named skill has a representative Celestan task and an isolated evaluation plan.
 
 ## Release
 
@@ -95,4 +97,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - `RAD-001`, `RAD-002`, and `RAD-003` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion, and `RAD-003` produced no candidate with demonstrated incremental value. The inspector is directly discoverable and verified, and no clean representative browser CLI task or named skill evaluation currently justifies further work.
+`AUTONOMY_IDLE` - `RAD-001`, `RAD-002`, and `RAD-003` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion, and `RAD-003` produced no candidate with demonstrated incremental value. The ranked catalog is available for triggered selection, but no clean representative browser task or named skill evaluation currently justifies further work.

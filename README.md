@@ -39,6 +39,7 @@ See [`STATE.md`](./STATE.md) for the active objective, evidence, stopping point,
 - [Capability registry](./registry/capabilities.md)
 - [Experiment registry](./registry/experiments.md)
 - [Capability Radar registry](./registry/radar.md)
+- [Ranked capability idea catalog](./registry/catalog.md)
 
 ## Local verification
 
