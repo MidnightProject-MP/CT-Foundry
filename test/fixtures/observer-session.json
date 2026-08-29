@@ -1,0 +1,17 @@
+{
+  "execution": {
+    "executionId": "ct-foundry-observer-dogfood-2026-08-29",
+    "project": "CT-Foundry",
+    "workstream": "Observer suite",
+    "environment": "local",
+    "sessionId": "dogfood-1",
+    "status": "success",
+    "startedAt": "2026-08-29T10:00:00Z",
+    "finishedAt": "2026-08-29T10:05:00Z"
+  },
+  "evidence": {
+    "source": "local-fixture",
+    "references": ["fixture://observer-session-dogfood"],
+    "evidenceDigest": "fixture-only"
+  }
+}

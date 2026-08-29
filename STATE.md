@@ -17,6 +17,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Evaluation E1.S7:** external agent-skill leaderboard survey. **Skills.sh, OpenCode docs, GitHub, and attempted Reddit signals reviewed; no candidate promoted.**
 - **Decision aid E1.S8:** ranked capability idea catalog. **Top ideas scored by fit, option value, evidence, risk, and evaluation effort; no speculative installation.**
 - **Evaluation E1.S9:** second real cold-start evaluation of bounded state signals. **Useful on a conventional headed state file; partial on a label-heavy file; retained without semantic expansion.**
+- **Capability E1.S10:** Celestan Observer suite. **Implemented as an available, dependency-free capability with versioned Session Digests, immutable ledger storage, consolidation candidates, coverage checks, and append-only weekly Chronicle generation. Runtime scheduling remains future CT-Runtime integration.**
 
 ## Current milestone
 
@@ -62,6 +63,8 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Reddit is an optional community signal, not a reliable sole source: this survey's Reddit search/API attempts returned unusable content or 403, so no Reddit claim was treated as evidence.
 - Prefer deterministic, executable verification and debugging capabilities over prompt-only skills whenever the task can be covered mechanically; use external skills to supplement, not replace, fresh command output and reproducible checks.
 - Maintain a ranked idea catalog as a decision aid, separating routine capabilities from trigger-based evaluations and unproven retained options. Scores prioritize fit and evidence over popularity.
+- Observer belongs in Foundry as reusable executable infrastructure because no CT-Runtime repository or shared execution store currently exists; a future runtime should call its stable API/CLI rather than require a daemon or parallel database.
+- Observer separates deterministic evidence plumbing from semantic judgment: runtime adapters collect and reference raw evidence, while optional model output supplies explicit semantic fields. Weak signals remain candidates; Identity is review-only and canonical state remains authoritative.
 
 ## Open questions
 
@@ -72,6 +75,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Would a future task require persistent browser context, self-healing exploration, or a client-independent browser service that current in-app control cannot provide?
 - Does a later pinned Playwright CLI release or runtime eliminate the Windows assertion and complete a representative local browser task cleanly?
 - Which specific external skill, if any, demonstrates measurable incremental value on a Celestan task after isolated review?
+- Which CT-Runtime repository, credentials, and scheduler contract will own GitHub Actions retrieval and periodic Observer invocation when that repository is created?
 
 ## Evidence gaps
 
@@ -87,10 +91,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Playwright CLI has no representative task evidence and currently fails its clean-process probe; do not install or register it until that boundary changes.
 - The external skill survey has distribution and documentation evidence but no Celestan task benchmark; leaderboard ranking must not be mistaken for quality, safety, or fit.
 - The inspector's bounded signal vocabulary remains intentionally incomplete: BorderCrossing's current state has no objective heading and its long label history is only partially represented. Do not infer missing intent or expand extraction without another concrete state shape.
+- Observer has fixture and local dogfood coverage but no scheduled multi-project runtime, real GitHub Actions adapter, model-semantic provider, or longitudinal week of records yet.
 
 ## Next action
 
-Use the inspector with state signals and nested inventory at the start of the next repository task. Treat signals as orientation, then read the authoritative state file before consequential decisions. Use `registry/catalog.md` to choose among P0 practices and triggered P1-P3 options. Reconsider browser candidates only when a concrete persistent browser task appears, and external skills only when a named skill has a representative Celestan task and an isolated evaluation plan.
+Dogfood `capabilities/observer` locally with safe execution manifests, then integrate its stable CLI/API into the future CT-Runtime scheduler. Keep raw evidence outside Git, persist one digest per execution, run coverage checks, and route only corroborated candidates to canonical Memory/LESSONS/Foundry consumers. Continue ordinary Foundry work only when new evidence or a concrete runtime contract justifies it.
 
 ## Release
 
@@ -100,4 +105,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - `RAD-001`, `RAD-002`, and `RAD-003` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion, and `RAD-003` produced no candidate with demonstrated incremental value. `E1.S9` confirmed the inspector's signals are useful orientation but not a replacement for authoritative state reading. The ranked catalog is available for triggered selection, but no clean representative browser task or named skill evaluation currently justifies further work.
+`AUTONOMY_CONTINUE` - E1.S10 establishes the first working Observer loop and is available but not preferred: the core ledger/consolidation/Chronicle path is tested locally, while the future CT-Runtime adapter, real Actions retrieval, semantic model integration, and longitudinal evidence remain unverified. The next justified work is runtime integration when its repository and scheduler contract exist, or a concrete execution source becomes available.

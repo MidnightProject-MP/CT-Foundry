@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/repo-state-inspector.test.mjs",
-    "inspect": "node capabilities/repo-state-inspector/inspect.mjs"
+    "test": "node --test test/*.test.mjs",
+    "inspect": "node capabilities/repo-state-inspector/inspect.mjs",
+    "observe": "node capabilities/observer/bin/observer.mjs"
   }
 }
