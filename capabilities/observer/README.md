@@ -1,10 +1,10 @@
 # Celestan Observer
 
-Observer is a dependency-free, reusable capability for turning one execution's safe evidence into a durable semantic Session Digest, then consolidating digests into promotion candidates and an append-only weekly Chronicle.
+Observer is a dependency-free, reusable capability for turning one execution's safe evidence into an immutable Execution Digest, then running a first-class semantic observation pass, consolidating observations into promotion candidates, and generating an append-only weekly Chronicle.
 
 ## Boundary
 
-Observer owns deterministic collection plumbing, normalization, idempotency, immutable ledger storage, consolidation, coverage checks, and Chronicle generation. A runtime adapter supplies execution metadata and raw-evidence references. Semantic judgment is supplied as a structured `semantic` payload by a model/runtime integration; Observer never pretends that a mechanical parser understood an execution.
+Observer owns deterministic collection plumbing, normalization, idempotency, immutable ledger storage, semantic-task contract/validation, consolidation, coverage checks, and Chronicle generation. A provider-neutral runtime boundary supplies model judgment for the semantic task; Observer never pretends that a mechanical parser understood an execution.
 
 The implementation is generic across repositories. It does not import project-specific rules, modify Identity, or auto-promote weak observations.
 
@@ -16,23 +16,24 @@ npm run observe -- consolidate --store .celestan/observer
 npm run observe -- chronicle --start 2026-08-24 --end 2026-08-30 --store .celestan/observer
 ```
 
-`evidence.json` contains `{ "execution": {...}, "evidence": {...} }`; an optional `--semantic` JSON file contains the semantic fields accepted by `createDigest()`.
+`evidence.json` contains `{ "execution": {...}, "evidence": {...} }`. `semantic-task` emits the provider-neutral task package; `semantic --input` accepts only a validated `celestan-semantic-observation-v1` result. Evidence-only records remain `semantic-analysis-pending` and are excluded from consolidation until the semantic pass succeeds.
 
 ## Storage
 
 Runtime state belongs in a gitignored `.celestan/observer` directory (or equivalent object storage). The semantic record itself is durable and may be mirrored into a repository-owned ledger when policy permits:
 
-- `records/<execution-id>.json`: immutable `celestan-session-digest-v1` records;
+- `records/<execution-id>.json`: immutable `celestan-execution-digest-v1` records;
+- `semantic/<execution-id>.json`: immutable semantic observation results;
 - `ledger.ndjson`: append-only index of recorded IDs and paths;
 - `cursor.json`: last successful append checkpoint; records remain authoritative if a crash occurs before checkpoint update;
 - `consolidation-YYYY-MM-DD.json`: generated findings and evidence references;
-- `chronicle/YYYY-MM-DD.json`: one append-only weekly narrative per period.
+- `chronicle/YYYY-MM-DD.json` and `.md`: one append-only structured and human-readable entry per period.
 
 The future CT-Runtime should keep raw Actions/local logs in its native retention store and pass safe URI/SHA references, not secrets or copied raw logs. It should write a manifest immediately after each execution and periodically invoke `digest`, `consolidate`, and `chronicle`. A manifest entry without a record is a coverage failure, never a successful no-op.
 
 ## Lifecycle and routing
 
-`episode history -> observation -> candidate -> reinforced candidate -> durable memory/lesson` is a policy lifecycle, not an automatic truth promotion. Consolidation counts occurrences and independent projects, checks existing memory/lessons, and emits destinations such as `episode-history`, `project-lesson-candidate`, `global-lesson-candidate`, `memory-candidate`, `foundry`, and `identity-candidate-review`.
+`manifested -> evidence-collected -> semantic-analysis-pending -> observed -> consolidated` is the execution lifecycle. Separately, `episode history -> observation -> candidate -> reinforced candidate -> durable memory/lesson` is a policy lifecycle, not an automatic truth promotion. Consolidation counts occurrences and independent projects, checks existing memory/lessons, and emits destinations such as `episode-history`, `project-lesson-candidate`, `global-lesson-candidate`, `memory-candidate`, `foundry`, and `identity-candidate-review`.
 
 Identity candidates always remain review-only in V1. Corrections must be new records/signals that supersede earlier interpretations; old records are never rewritten. Canonical Memory, LESSONS, Identity, and Foundry registries remain authoritative and must retain links back to digest IDs and evidence references when they accept a candidate.
 

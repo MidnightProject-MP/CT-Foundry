@@ -4,16 +4,16 @@
 
 `Identity -> Memory -> Context -> Behavior -> Experience -> Observer -> Reflection/Consolidation -> Memory + Identity -> future behavior`
 
-Observer is a generic Foundry capability, not a project feature. CT-Runtime will eventually schedule it, but no runtime repository currently exists. The first implementation therefore exposes a stable CLI and JavaScript API that a future runtime can call without changing the ledger contract.
+Observer is a generic Foundry capability, not a project feature. Workspace inventory found no CT-Runtime repository, workflow, service, or local scheduler; the only runtime evidence is the declarative external wake-up capability in Identity. Observer therefore exposes a stable CLI and JavaScript API for a runtime to call without changing the ledger contract.
 
 ## Data flow
 
 1. The runtime executes work and writes a compact manifest immediately, containing an execution ID, project, run/session ID, commit, status, timestamps, evidence URIs, and a safe evidence digest. Raw GitHub Actions logs or local `.celestan/` session logs remain outside Git.
-2. An adapter retrieves completed evidence and optionally asks a model to produce semantic fields. Deterministic code handles lookup, checkpoints, deduplication, parsing, and persistence.
-3. Observer writes exactly one immutable `celestan-session-digest-v1` record per execution. The filename and `ledger.ndjson` provide idempotency; `cursor.json` is a restart hint, while records remain authoritative if a crash occurs before checkpoint update. Write-once behavior prevents reinterpretation from rewriting history.
-4. Consolidation reads multiple records and existing Memory/LESSONS snapshots, groups explicit signals, counts independent projects, and emits candidates with provenance. It does not silently modify cognitive state.
-5. A policy-aware consumer may accept a candidate into project memory, a lesson, Foundry, or an identity-review queue. Accepted state must cite digest IDs and source evidence. Identity changes require deliberate reflection and substantially stronger evidence.
-6. A scheduled weekly job writes one immutable Chronicle entry for the period. Corrections are later entries, not edits.
+2. An adapter retrieves completed evidence. Observer creates a provider-neutral semantic task with the evidence package, observation prompt, output schema, and pending completion state. Celestan's normal model-selection machinery performs inference; Observer validates the result and records failures without claiming observation.
+3. Observer writes exactly one immutable `celestan-execution-digest-v1` record per execution. Evidence-only records are `semantic-analysis-pending`; they never count as semantically observed. The filename and `ledger.ndjson` provide idempotency; `cursor.json` is a restart hint, while records remain authoritative if a crash occurs before checkpoint update.
+4. A valid `celestan-semantic-observation-v1` result creates an immutable semantic record and transitions the execution to `observed`. Consolidation reads only observed records and existing Memory/LESSONS snapshots, groups explicit signals, counts independent projects, and emits candidates with provenance.
+5. A policy-aware consumer may accept, defer, reject, or route a candidate into episode/project memory, a lesson, Foundry, or an identity-review queue. Accepted state must cite digest IDs and source evidence. Identity changes require deliberate reflection and substantially stronger evidence.
+6. A scheduled weekly job writes one immutable JSON metadata artifact and one Markdown developmental Chronicle entry for the period. Corrections are later entries, not edits.
 
 ## Source adapters
 
@@ -27,7 +27,7 @@ The precedence boundary is: Identity/authority and canonical durable principles 
 
 ## Coverage, failure recovery, and self-observation
 
-The runtime must maintain a manifest of expected executions. `coverageReport()` identifies missing records and adapter/Observer failures. Re-running a digest is safe and returns `duplicate`; a record with a changed interpretation requires a correction/supersession record, not replacement. Schema versions are explicit and unknown versions must be quarantined rather than parsed permissively. Consolidation accepts existing Memory/LESSONS keys so an equivalent signal can be reinforced rather than creating a new lesson.
+The runtime must maintain a manifest of expected executions. `coverageReport()` identifies missing evidence records, evidence records still missing semantic observation, and adapter/Observer failures. Re-running a digest is safe and returns `duplicate`; malformed, unsupported, or low-confidence semantic output is rejected and can be recorded as a retryable lifecycle failure. A record with a changed interpretation requires a correction/supersession record, not replacement. Schema versions are explicit and unknown versions must be quarantined rather than parsed permissively. Consolidation accepts existing Memory/LESSONS keys so an equivalent signal can be reinforced rather than creating a new lesson.
 
 Observer's own runs carry a meta-observation marker and are excluded from ordinary recursive digestion. Runtime health can still create a bounded health digest or coverage failure signal for a later Observer run. This preserves self-observation without an infinite loop.
 
@@ -35,11 +35,11 @@ Observer's own runs carry a meta-observation marker and are excluded from ordina
 
 Keep the semantic ledger and source references as long-lived history. Raw logs may expire only after the evidence digest, retrieval reference, and required provenance are safely durable and no security/compliance rule requires retention. V1 does not automate deletion.
 
-## Representative digest
+## Representative Execution Digest
 
 ```json
 {
-  "schema": "celestan-session-digest-v1",
+  "schema": "celestan-execution-digest-v1",
   "execution": { "id": "run-2026-08-29-001", "project": "CT-Foundry", "status": "recovered" },
   "summary": "Repaired a reproducible repository-state parsing defect and verified the promoted entry point.",
   "failures": ["Leading Git status whitespace was removed by normalization."],
@@ -64,6 +64,22 @@ Keep the semantic ledger and source references as long-lived history. Raw logs m
     "evidence": ["run-1", "run-2"]
   }]
 }
+```
+
+## Representative Chronicle Markdown
+
+```markdown
+# Observer Chronicle: 2026-08-24 to 2026-08-30
+
+Celestan repaired a reproducible state-inspection defect, verified the promoted entry point, and established Observer as available infrastructure. The work improved evidence handling without changing canonical identity or memory.
+
+## Lessons and Signals
+
+- Inspect normalized command output before trusting it.
+
+## Integrity
+
+- This entry is append-only; corrections must be recorded in a later period entry.
 ```
 
 ## Deliberately not built in V1

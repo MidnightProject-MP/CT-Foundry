@@ -17,7 +17,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Evaluation E1.S7:** external agent-skill leaderboard survey. **Skills.sh, OpenCode docs, GitHub, and attempted Reddit signals reviewed; no candidate promoted.**
 - **Decision aid E1.S8:** ranked capability idea catalog. **Top ideas scored by fit, option value, evidence, risk, and evaluation effort; no speculative installation.**
 - **Evaluation E1.S9:** second real cold-start evaluation of bounded state signals. **Useful on a conventional headed state file; partial on a label-heavy file; retained without semantic expansion.**
-- **Capability E1.S10:** Celestan Observer suite. **Implemented as an available, dependency-free capability with versioned Session Digests, immutable ledger storage, consolidation candidates, coverage checks, and append-only weekly Chronicle generation. Runtime scheduling remains future CT-Runtime integration.**
+- **Capability E1.S10:** Celestan Observer suite. **Implemented as an available, dependency-free capability with versioned Execution Digests, first-class validated semantic observations, immutable ledger storage, consolidation candidates, coverage checks, policy-consumer decisions, and append-only JSON/Markdown Chronicle generation. Runtime scheduling remains future CT-Runtime integration.**
 
 ## Current milestone
 
@@ -64,7 +64,9 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Prefer deterministic, executable verification and debugging capabilities over prompt-only skills whenever the task can be covered mechanically; use external skills to supplement, not replace, fresh command output and reproducible checks.
 - Maintain a ranked idea catalog as a decision aid, separating routine capabilities from trigger-based evaluations and unproven retained options. Scores prioritize fit and evidence over popularity.
 - Observer belongs in Foundry as reusable executable infrastructure because no CT-Runtime repository or shared execution store currently exists; a future runtime should call its stable API/CLI rather than require a daemon or parallel database.
-- Observer separates deterministic evidence plumbing from semantic judgment: runtime adapters collect and reference raw evidence, while optional model output supplies explicit semantic fields. Weak signals remain candidates; Identity is review-only and canonical state remains authoritative.
+- Observer separates deterministic evidence plumbing from semantic judgment: runtime adapters collect and reference raw evidence, while a provider-neutral semantic task requires validated model output before an execution is considered observed. Weak signals remain candidates; Identity is review-only and canonical state remains authoritative.
+- Observer's execution lifecycle is `manifested -> evidence-collected -> semantic-analysis-pending -> observed -> consolidated`; evidence capture alone is not semantic coverage. The ledger unit is an Execution Digest because one execution may contain multiple model/subagent sessions.
+- Policy decisions are append-only and provenance-preserving; `accept`, `defer`, and `reject` are supported for episode/project memory, lessons, and Foundry, while identity remains review-only.
 
 ## Open questions
 
@@ -92,10 +94,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - The external skill survey has distribution and documentation evidence but no Celestan task benchmark; leaderboard ranking must not be mistaken for quality, safety, or fit.
 - The inspector's bounded signal vocabulary remains intentionally incomplete: BorderCrossing's current state has no objective heading and its long label history is only partially represented. Do not infer missing intent or expand extraction without another concrete state shape.
 - Observer has fixture and local dogfood coverage but no scheduled multi-project runtime, real GitHub Actions adapter, model-semantic provider, or longitudinal week of records yet.
+- Runtime inventory is resolved: no CT-Runtime repository, scheduler workflow, service, or execution store is present under `C:\Celestan`; only the declarative external wake-up capability is documented in Identity.
 
 ## Next action
 
-Dogfood `capabilities/observer` locally with safe execution manifests, then integrate its stable CLI/API into the future CT-Runtime scheduler. Keep raw evidence outside Git, persist one digest per execution, run coverage checks, and route only corroborated candidates to canonical Memory/LESSONS/Foundry consumers. Continue ordinary Foundry work only when new evidence or a concrete runtime contract justifies it.
+Dogfood `capabilities/observer` locally with safe execution manifests, then integrate its stable CLI/API into a runtime when one exists. Keep raw evidence outside Git, require semantic coverage before consolidation, run coverage checks, and route only corroborated candidates to canonical Memory/LESSONS/Foundry consumers. Continue ordinary Foundry work only when new evidence or a concrete runtime contract justifies it.
 
 ## Release
 

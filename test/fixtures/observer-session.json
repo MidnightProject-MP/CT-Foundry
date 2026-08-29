@@ -1,6 +1,6 @@
 {
   "execution": {
-    "executionId": "ct-foundry-observer-dogfood-2026-08-29",
+    "executionId": "ct-foundry-observer-dogfood-v2",
     "project": "CT-Foundry",
     "workstream": "Observer suite",
     "environment": "local",

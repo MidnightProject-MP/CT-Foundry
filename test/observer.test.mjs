@@ -3,15 +3,16 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { createDigest } from '../capabilities/observer/schema.mjs';
-import { ObserverStore, appendChronicle, consolidate, coverageReport, digestAndAppend } from '../capabilities/observer/observer.mjs';
+import { createDigest, createSemanticObservationTask, SEMANTIC_SCHEMA } from '../capabilities/observer/schema.mjs';
+import { ObserverStore, appendChronicle, consolidate, coverageReport, createPolicyDecision, digestAndAppend } from '../capabilities/observer/observer.mjs';
 
 const execution = (id, project, status = 'success') => ({ executionId: id, project, environment: 'fixture', status, startedAt: '2026-08-29T10:00:00Z', finishedAt: '2026-08-29T10:05:00Z' });
-const input = (id, project, status, signals = [], extra = {}) => ({ execution: execution(id, project, status), evidence: { source: 'fixture', references: [`fixture://${id}`], ...extra }, semantic: { summary: `${status} fixture`, signals } });
+const semantic = (id, status, signals = [], extra = {}) => ({ schema: SEMANTIC_SCHEMA, executionId: id, status: 'complete', summary: `${status} fixture`, confidence: 0.9, signals, ...extra });
+const input = (id, project, status, signals = [], extra = {}) => ({ execution: execution(id, project, status), evidence: { source: 'fixture', references: [`fixture://${id}`], ...extra }, semantic: semantic(id, status, signals) });
 
 test('creates a compact versioned digest and preserves provenance', () => {
-  const digest = createDigest({ execution: execution('ok-1', 'alpha'), evidence: { source: 'actions', references: ['actions://1'] }, semantic: { actions: ['run tests'], verification: { tests: 'passed' } } });
-  assert.equal(digest.schema, 'celestan-session-digest-v1');
+  const digest = createDigest({ execution: execution('ok-1', 'alpha'), evidence: { source: 'actions', references: ['actions://1'] }, semantic: semantic('ok-1', 'success', [], { actions: ['run tests'], verification: { tests: 'passed' } }) });
+  assert.equal(digest.schema, 'celestan-execution-digest-v1');
   assert.equal(digest.execution.id, 'ok-1');
   assert.deepEqual(digest.verification, { tests: 'passed' });
   assert.deepEqual(digest.provenance.references, ['actions://1']);
@@ -19,11 +20,26 @@ test('creates a compact versioned digest and preserves provenance', () => {
 });
 
 test('successful run, failed recovery, human correction, and crash remain structured', () => {
-  const digest = createDigest({ execution: execution('recovered', 'alpha', 'recovered'), evidence: {}, semantic: { failures: ['initial command failed'], recoveries: ['rerouted to a supported command'], interventions: ['human corrected the target path'], autonomyBlocks: ['session ended before deployment'] } });
+  const digest = createDigest({ execution: execution('recovered', 'alpha', 'recovered'), evidence: {}, semantic: semantic('recovered', 'recovered', [], { failures: ['initial command failed'], recoveries: ['rerouted to a supported command'], interventions: ['human corrected the target path'], autonomyBlocks: ['session ended before deployment'] }) });
   assert.deepEqual(digest.failures, ['initial command failed']);
   assert.deepEqual(digest.recoveries, ['rerouted to a supported command']);
   assert.deepEqual(digest.interventions, ['human corrected the target path']);
   assert.deepEqual(digest.autonomyBlocks, ['session ended before deployment']);
+});
+
+test('semantic observation is explicit, provider-neutral, validated, and cannot be faked by evidence capture', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
+  const store = new ObserverStore(root);
+  const pending = await digestAndAppend(store, { execution: execution('pending', 'alpha'), evidence: { source: 'fixture', references: ['fixture://pending'] } });
+  assert.equal(pending.digest.lifecycle.state, 'semantic-analysis-pending');
+  assert.deepEqual((await consolidate(store)).inputRecords, []);
+  const task = createSemanticObservationTask(pending.digest);
+  assert.equal(task.completion, 'pending');
+  assert.equal(task.outputSchema, SEMANTIC_SCHEMA);
+  await assert.rejects(() => store.appendSemantic('pending', { schema: 'wrong', executionId: 'pending', status: 'complete', summary: 'bad', confidence: 1, signals: [] }), /Unsupported/);
+  await assert.rejects(() => store.appendSemantic('pending', semantic('pending', 'success', [], { confidence: 0.2 })), /below/);
+  assert.equal((await store.appendSemantic('pending', semantic('pending', 'success'))).status, 'observed');
+  assert.equal((await consolidate(store)).inputRecords[0], 'pending');
 });
 
 test('ledger is idempotent and consolidation distinguishes project/global signals', async () => {
@@ -60,6 +76,7 @@ test('coverage detects missing and incomplete executions instead of silently ski
   const report = coverageReport({ manifest: [{ executionId: 'seen' }, { executionId: 'missing' }], records: [{ execution: { id: 'seen' } }], failures: ['crashed: no evidence digest'] });
   assert.equal(report.healthy, false);
   assert.deepEqual(report.missing, ['missing']);
+  assert.deepEqual(report.semanticMissing, ['seen']);
   assert.equal(report.failures.length, 1);
 });
 
@@ -73,4 +90,12 @@ test('chronicle is append-only by period and references source records', async (
   assert.deepEqual(entry.sourceExecutionIds, ['chronicle-1']);
   await assert.rejects(() => appendChronicle(store, { start: '2026-08-29', end: '2026-08-29' }, output), /already exists/);
   assert.match(await readFile(output, 'utf8'), /shipped|semantic records/);
+  assert.match(await readFile(output.replace('.json', '.md'), 'utf8'), /# Observer Chronicle/);
+});
+
+test('policy consumer preserves provenance and prevents identity auto-acceptance', () => {
+  const candidate = { key: 'policy', evidence: ['run-a', 'run-b'] };
+  assert.equal(createPolicyDecision(candidate, 'defer', 'identity-review').action, 'defer');
+  assert.throws(() => createPolicyDecision(candidate, 'accept', 'identity-review'), /review-only/);
+  assert.equal(createPolicyDecision(candidate, 'accept', 'lessons').evidence.length, 2);
 });

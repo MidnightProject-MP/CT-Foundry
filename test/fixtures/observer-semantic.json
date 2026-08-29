@@ -1,0 +1,15 @@
+{
+  "schema": "celestan-semantic-observation-v1",
+  "executionId": "ct-foundry-observer-dogfood-v2",
+  "status": "complete",
+  "summary": "Observer's two-stage execution digestion was verified locally.",
+  "confidence": 0.9,
+  "verification": { "tests": "passed", "cli": "passed" },
+  "signals": [
+    {
+      "key": "semantic-coverage",
+      "type": "lesson",
+      "text": "Evidence capture must not be counted as semantic observation."
+    }
+  ]
+}
