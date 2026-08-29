@@ -71,3 +71,12 @@
 - **Success signal:** The report exposes actionable current direction and verification context for at least one real project, while omissions are visible and non-deceptive.
 - **Failure signal:** Signals are misleading, too noisy, or imply completeness; narrow or retire the extension.
 - **Current result:** SuperSimpleGames exposed objective, milestone, open questions, evidence gaps, and next action from headings. BorderCrossing exposed current status and the latest next story from a label-heavy state, but no objective heading and no complete history. Keep the bounded extension as orientation only; require the full state file for consequential decisions and do not add semantic inference.
+
+## EXP-009 - orchestration-distribution audit
+
+- **Question:** Is parent-retained execution activity frequent enough to justify making under-delegation observable without treating telemetry as proof of semantic policy violation?
+- **Hypothesis:** Runtime-attributed task/session and mutation-call counts can identify elevated parent retention as a review proxy, while an evidence-citing semantic pass preserves uncertainty about whether direct work was justified.
+- **Smallest test:** Audit the recent available session cohort, implement deterministic distribution measurements and a separate semantic assessment, then verify valid/invalid telemetry, formulas, unavailable states, semantic outcomes, and two-stage consumers.
+- **Success signal:** Observer records denominators and elevated retention without emitting compliance claims; semantic judgment remains cited and uncertain; Chronicle, consolidation, and coverage agree on two-stage observed records.
+- **Failure signal:** Attribution cannot be supplied consistently, numeric telemetry leaks into generic signals, or the proxy is treated as automatic violation/enforcement; narrow or remove the extension.
+- **Current result:** Observer development retained 52/52 mutation-tool rows in the parent with zero children (100%); focal recent BorderCrossing combined parents retained 448/471 (95.1%); the fixed post-cutoff cohort retained 1021/1205 (84.7%). These overlapping external-audit cohorts are bounded proxies, not automated test fixtures or proof that calls were successful, delegable, or policy-violating. Exact provenance and reproduction SQL are in [`docs/observer-orchestration-audit-2026-08-29.md`](../docs/observer-orchestration-audit-2026-08-29.md). No hard enforcement or routing capability was built.

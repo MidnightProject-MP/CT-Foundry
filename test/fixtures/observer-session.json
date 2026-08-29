@@ -7,7 +7,16 @@
     "sessionId": "dogfood-1",
     "status": "success",
     "startedAt": "2026-08-29T10:00:00Z",
-    "finishedAt": "2026-08-29T10:05:00Z"
+    "finishedAt": "2026-08-29T10:05:00Z",
+    "orchestration": {
+      "taskAvailable": true,
+      "parentSessionCount": 1,
+      "workerSessionCount": 0,
+      "parentTaskCount": 1,
+      "delegatedTaskCount": 0,
+      "parentMutationCalls": 52,
+      "delegatedMutationCalls": 0
+    }
   },
   "evidence": {
     "source": "local-fixture",

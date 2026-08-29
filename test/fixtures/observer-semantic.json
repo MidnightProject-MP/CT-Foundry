@@ -5,6 +5,12 @@
   "summary": "Observer's two-stage execution digestion was verified locally.",
   "confidence": 0.9,
   "verification": { "tests": "passed", "cli": "passed" },
+  "orchestrationAssessment": {
+    "outcome": "insufficient-evidence",
+    "summary": "The fixture records elevated parent retention but does not establish task delegability.",
+    "uncertainty": "Mutation-call distribution alone cannot establish whether delegation was available, appropriate, or beneficial.",
+    "evidenceReferences": ["fixture://observer-session-dogfood"]
+  },
   "signals": [
     {
       "key": "semantic-coverage",

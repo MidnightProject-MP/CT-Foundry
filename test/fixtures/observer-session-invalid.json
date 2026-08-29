@@ -1,0 +1,15 @@
+{
+  "execution": {
+    "executionId": "invalid-orchestration",
+    "project": "CT-Foundry",
+    "orchestration": {
+      "taskAvailable": true,
+      "parentSessionCount": 1,
+      "parentMutationCalls": 4,
+      "delegatedMutationCalls": 1
+    }
+  },
+  "evidence": {
+    "references": ["fixture://invalid-orchestration"]
+  }
+}

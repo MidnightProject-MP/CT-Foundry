@@ -17,11 +17,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Evaluation E1.S7:** external agent-skill leaderboard survey. **Skills.sh, OpenCode docs, GitHub, and attempted Reddit signals reviewed; no candidate promoted.**
 - **Decision aid E1.S8:** ranked capability idea catalog. **Top ideas scored by fit, option value, evidence, risk, and evaluation effort; no speculative installation.**
 - **Evaluation E1.S9:** second real cold-start evaluation of bounded state signals. **Useful on a conventional headed state file; partial on a label-heavy file; retained without semantic expansion.**
-- **Capability E1.S10:** Celestan Observer suite. **Implemented as an available, dependency-free capability with versioned Execution Digests, first-class validated semantic observations, immutable ledger storage, consolidation candidates, coverage checks, policy-consumer decisions, and append-only JSON/Markdown Chronicle generation. Runtime scheduling remains future CT-Runtime integration.**
+- **Capability E1.S10:** Celestan Observer suite. **Observer 1.1.0 is available with versioned Execution Digests, optional runtime orchestration telemetry, deterministic execution-distribution measurements, evidence-citing semantic orchestration assessments, immutable ledger storage, authoritative joined observed records, consolidation, coverage, policy decisions, and append-only Chronicle generation. Runtime scheduling and any future enforcement remain CT-Runtime responsibilities.**
 
 ## Current milestone
 
-**E1.S8 - ranked capability idea catalog.** `registry/catalog.md` now ranks proven local capabilities and external candidates by practical fit, option value, evidence, risk, and effort. P0 deterministic practices are routine; P1-P3 entries remain trigger-based options.
+**E1.S10 - Celestan Observer 1.1.0.** The additive implementation makes execution distribution observable while preserving the boundary between mechanical activity proxies and semantic orchestration judgment. The capability remains `Available`, not preferred or enforcing.
 
 ## Observations
 
@@ -40,6 +40,9 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - The same run showed repeated historical `Next Story:` records; labeled fallback extraction now keeps only the latest record per signal kind to avoid presenting stale history as concurrent current state.
 - Browser verification recurs in SuperSimpleGames and BorderCrossing, making browser automation a valid Radar target. Official Playwright MCP documentation describes useful persistent structured-browser workflows, but also says CLI-plus-skills is more token-efficient for coding agents and warns that MCP is not a security boundary.
 - The official Playwright CLI documentation describes named sessions, token-efficient snapshots, screenshots, traces, network inspection, and coding-agent skills. `npx --yes @playwright/cli@0.1.18 --version` and `--help` print successfully but reproduce a Windows `UV_HANDLE_CLOSING` assertion afterward.
+- A bounded orchestration audit found parent-retained mutation-call proxies of 52/52 (100%, zero children) for Observer development, 448/471 (95.1%) for focal recent BorderCrossing combined parents, and 1021/1205 (84.7%) across all reviewed post-2026-08-23 sessions. The overlapping cohorts and tool-call counts do not establish that work was delegable or policy was violated.
+- Observer 1.1.0 makes optional runtime-supplied task availability, parent/worker session or task counts, and parent/delegated mutation calls measurable. Missing metadata and zero denominators remain explicitly unavailable.
+- A single authoritative joined-record view contains both pending digests and validated semantic projections. Consolidation and Chronicle filter observed records; coverage distinguishes processed-pending records from missing records.
 
 ## Decisions
 
@@ -67,6 +70,10 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Observer separates deterministic evidence plumbing from semantic judgment: runtime adapters collect and reference raw evidence, while a provider-neutral semantic task requires validated model output before an execution is considered observed. Weak signals remain candidates; Identity is review-only and canonical state remains authoritative.
 - Observer's execution lifecycle is `manifested -> evidence-collected -> semantic-analysis-pending -> observed -> consolidated`; evidence capture alone is not semantic coverage. The ledger unit is an Execution Digest because one execution may contain multiple model/subagent sessions.
 - Policy decisions are append-only and provenance-preserving; `accept`, `defer`, and `reject` are supported for episode/project memory, lessons, and Foundry, while identity remains review-only.
+- Numeric execution-distribution measurements are first-class metrics, not generic semantic signals. The elevated-parent-retention threshold is a proxy for review, never an automatic compliance or violation result.
+- Semantic orchestration assessment is first-class but optional for V1 compatibility; it requires a bounded outcome, cited execution evidence, and explicit uncertainty.
+- Observer does not enforce delegation or route work. CT-Runtime owns truthful telemetry capture and is the future enforcement owner only if longitudinal evidence warrants controls.
+- Semantic sidecars are untrusted inputs at join time: only allowlisted semantic fields are projected, while digest-owned execution identity, provenance, timestamps, and measurements remain immutable.
 
 ## Open questions
 
@@ -95,10 +102,13 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - The inspector's bounded signal vocabulary remains intentionally incomplete: BorderCrossing's current state has no objective heading and its long label history is only partially represented. Do not infer missing intent or expand extraction without another concrete state shape.
 - Observer has fixture and local dogfood coverage but no scheduled multi-project runtime, real GitHub Actions adapter, model-semantic provider, or longitudinal week of records yet.
 - Runtime inventory is resolved: no CT-Runtime repository, scheduler workflow, service, or execution store is present under `C:\Celestan`; only the declarative external wake-up capability is documented in Identity.
+- The orchestration audit attributes tool mutation calls, not semantic task units, work difficulty, quality, or delegation opportunity. Its cohorts overlap and cannot be combined into a larger sample.
+- Runtime-supplied parent/worker attribution has fixture validation but no production CT-Runtime producer; absent metadata remains unavailable rather than inferred.
+- The bounded audit is reproducible from the external OpenCode database using fixed UTC bounds and named session roots documented in `docs/observer-orchestration-audit-2026-08-29.md`; raw logs are not copied into Git and aggregate totals are not automated-test claims.
 
 ## Next action
 
-Dogfood `capabilities/observer` locally with safe execution manifests, then integrate its stable CLI/API into a runtime when one exists. Keep raw evidence outside Git, require semantic coverage before consolidation, run coverage checks, and route only corroborated candidates to canonical Memory/LESSONS/Foundry consumers. Continue ordinary Foundry work only when new evidence or a concrete runtime contract justifies it.
+Integrate Observer's stable CLI/API and optional orchestration contract into CT-Runtime when that repository and scheduler exist. CT-Runtime should supply truthful attribution and joined records to coverage, keep raw evidence outside Git, and require semantic coverage before consolidation. Do not add enforcement unless longitudinal evidence establishes a durable semantic under-delegation problem.
 
 ## Release
 
@@ -108,4 +118,4 @@ Dogfood `capabilities/observer` locally with safe execution manifests, then inte
 
 ## Stopping point
 
-`AUTONOMY_CONTINUE` - E1.S10 establishes the first working Observer loop and is available but not preferred: the core ledger/consolidation/Chronicle path is tested locally, while the future CT-Runtime adapter, real Actions retrieval, semantic model integration, and longitudinal evidence remain unverified. The next justified work is runtime integration when its repository and scheduler contract exist, or a concrete execution source becomes available.
+`AUTONOMY_CONTINUE` - E1.S10 Observer 1.1.0 is implemented and locally verified but remains available rather than preferred. Mechanical distribution evidence is now visible without being promoted to semantic policy proof; CT-Runtime integration, real retrieval/model execution, and longitudinal records remain unverified. The next justified work is runtime integration when its repository and scheduler contract exist, not enforcement inside Observer.

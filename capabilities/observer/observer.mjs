@@ -1,6 +1,6 @@
 import { mkdir, readFile, readdir, writeFile, appendFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createDigest, validateSemanticObservation, createSemanticObservationTask, OBSERVER_VERSION, CONSOLIDATION_SCHEMA, CHRONICLE_SCHEMA, SEMANTIC_SCHEMA } from './schema.mjs';
+import { createDigest, validateSemanticObservation, createSemanticObservationTask, projectSemanticObservation, OBSERVER_VERSION, CONSOLIDATION_SCHEMA, CHRONICLE_SCHEMA, SEMANTIC_SCHEMA } from './schema.mjs';
 
 const json = (value) => JSON.stringify(value, null, 2) + '\n';
 const safe = (id) => id.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -27,7 +27,7 @@ export class ObserverStore {
   }
   async appendSemantic(executionId, output) {
     const digest = JSON.parse(await readFile(this.recordPath(executionId), 'utf8'));
-    validateSemanticObservation(output, executionId);
+    validateSemanticObservation(output, executionId, { allowedEvidenceReferences: digest.provenance.references || [] });
     const directory = path.join(this.root, 'semantic');
     await mkdir(directory, { recursive: true });
     const target = path.join(directory, `${safe(executionId)}.json`);
@@ -48,10 +48,11 @@ export class ObserverStore {
       .map(async (name) => JSON.parse(await readFile(path.join(this.records, name), 'utf8')));
   }
   async all() { return Promise.all(await this.list()); }
+  async joined() { return joinedRecords(this); }
 }
 
 export async function digestAndAppend(store, input) {
-  const semantic = input.semantic ? validateSemanticObservation(input.semantic, input.execution.executionId) : undefined;
+  const semantic = input.semantic ? validateSemanticObservation(input.semantic, input.execution.executionId, { allowedEvidenceReferences: input.evidence?.references || input.execution.references || [] }) : undefined;
   const digest = createDigest({ ...input, semantic });
   const result = await store.append(digest);
   if (semantic && result.status === 'processed') await store.appendSemantic(digest.execution.id, semantic);
@@ -59,12 +60,8 @@ export async function digestAndAppend(store, input) {
 }
 
 export async function consolidate(store, { existingMemory = [], existingLessons = [] } = {}) {
-  const records = await store.all();
-  const semanticOnly = [];
-  for (const record of records) {
-    try { semanticOnly.push({ ...record, ...JSON.parse(await readFile(path.join(store.root, 'semantic', `${safe(record.execution.id)}.json`), 'utf8')), lifecycle: { state: 'observed' } }); }
-    catch { /* remains pending and is reported below */ }
-  }
+  const records = await joinedRecords(store);
+  const semanticOnly = records.filter(isObservedRecord);
   const known = new Set([...existingMemory, ...existingLessons].map((item) => typeof item === 'string' ? item : item.key || item.text).filter(Boolean));
   const groups = new Map();
   for (const record of semanticOnly) {
@@ -117,7 +114,7 @@ function destination(type, projects, occurrences) {
 }
 
 export async function appendChronicle(store, period, outputPath, markdownPath = outputPath.replace(/\.json$/i, '.md')) {
-  const records = await observedRecords(store);
+  const records = (await joinedRecords(store)).filter(isObservedRecord);
   const periodRecords = records.filter((record) => (record.execution.finishedAt || record.observedAt || '').slice(0, 10) >= period.start && (record.execution.startedAt || record.observedAt || '').slice(0, 10) <= period.end);
   const statuses = periodRecords.reduce((counts, record) => { const status = record.execution.status || 'unknown'; counts[status] = (counts[status] || 0) + 1; return counts; }, {});
   const notable = periodRecords.flatMap((r) => (r.failures || []).map((failure) => `${r.execution.project}: ${failure}`)).slice(0, 8);
@@ -129,17 +126,22 @@ export async function appendChronicle(store, period, outputPath, markdownPath = 
   return entry;
 }
 
-async function observedRecords(store) {
+export async function joinedRecords(store) {
   const records = [];
   for (const record of await store.all()) {
-    if (record.lifecycle?.state === 'observed') records.push(record);
+    if (record.lifecycle?.state === 'observed' && record.semanticObservation?.status === 'complete') records.push(record);
     else {
-      try { records.push({ ...record, ...JSON.parse(await readFile(path.join(store.root, 'semantic', `${safe(record.execution.id)}.json`), 'utf8')) }); }
-      catch { /* semantic analysis is still pending */ }
+      try {
+        const semantic = JSON.parse(await readFile(path.join(store.root, 'semantic', `${safe(record.execution.id)}.json`), 'utf8'));
+        validateSemanticObservation(semantic, record.execution.id, { allowedEvidenceReferences: record.provenance.references || [] });
+        records.push({ ...record, ...projectSemanticObservation(semantic), lifecycle: { ...record.lifecycle, state: 'observed' } });
+      } catch { records.push(record); }
     }
   }
   return records;
 }
+
+export const isObservedRecord = (record) => record.lifecycle?.state === 'observed' && record.semanticObservation?.status === 'complete';
 
 export function renderChronicleMarkdown(entry, records) {
   const sections = [`# Observer Chronicle: ${entry.period.start} to ${entry.period.end}`, '', entry.narrative, '', `## Evidence`, '', `- ${entry.executionCount} execution record${entry.executionCount === 1 ? '' : 's'}; source IDs: ${entry.sourceExecutionIds.join(', ') || 'none'}.`];
@@ -160,7 +162,7 @@ function narrative(period, records, statuses, notable) {
 
 export function coverageReport({ manifest = [], records = [], failures = [] }) {
   const processed = new Set(records.map((record) => record.execution.id));
-  const observed = new Set(records.filter((record) => record.lifecycle?.state === 'observed' || record.semanticObservation?.status === 'complete').map((record) => record.execution.id));
+  const observed = new Set(records.filter(isObservedRecord).map((record) => record.execution.id));
   const missing = manifest.filter((item) => !processed.has(item.executionId)).map((item) => item.executionId);
   const semanticMissing = manifest.filter((item) => processed.has(item.executionId) && !observed.has(item.executionId)).map((item) => item.executionId);
   return { schema: 'celestan-observer-coverage-v1', checkedAt: now(), expected: manifest.length, processed: processed.size, semanticallyObserved: observed.size, missing, semanticMissing, failures, healthy: missing.length === 0 && semanticMissing.length === 0 && failures.length === 0 };
