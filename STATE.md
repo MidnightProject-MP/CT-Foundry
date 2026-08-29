@@ -16,6 +16,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Evaluation E1.S6:** bounded evaluation of a coding-agent browser CLI. **Playwright CLI evaluated; runtime failure observed; not promoted.**
 - **Evaluation E1.S7:** external agent-skill leaderboard survey. **Skills.sh, OpenCode docs, GitHub, and attempted Reddit signals reviewed; no candidate promoted.**
 - **Decision aid E1.S8:** ranked capability idea catalog. **Top ideas scored by fit, option value, evidence, risk, and evaluation effort; no speculative installation.**
+- **Evaluation E1.S9:** second real cold-start evaluation of bounded state signals. **Useful on a conventional headed state file; partial on a label-heavy file; retained without semantic expansion.**
 
 ## Current milestone
 
@@ -80,14 +81,16 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Heading extraction can miss projects that store state in prose, non-Markdown files, or unconventional headings; it is not semantic project understanding.
 - Nested marker output can still be noisy in large multi-project repositories, especially Terraform modules and .NET project trees; no promotion decision is made from the sample alone.
 - Labeled state signals have fixture and one real-project coverage, but their usefulness and noise level need another real cold-start task.
+- A second cold-start run confirmed that signals can expose the operative objective, milestone, open questions, evidence gaps, and next action in a conventional state file; a label-heavy state file exposed only its recognized status and latest next-story records, so manual reading remains required.
 - Latest-record collapsing is deterministic but assumes later labeled records supersede earlier ones; projects with a different chronology may still need a narrower explicit state format.
 - Playwright MCP has no representative Celestan task evidence beyond documentation comparison; its `Evaluated` state must not be treated as an available default.
 - Playwright CLI has no representative task evidence and currently fails its clean-process probe; do not install or register it until that boundary changes.
 - The external skill survey has distribution and documentation evidence but no Celestan task benchmark; leaderboard ranking must not be mistaken for quality, safety, or fit.
+- The inspector's bounded signal vocabulary remains intentionally incomplete: BorderCrossing's current state has no objective heading and its long label history is only partially represented. Do not infer missing intent or expand extraction without another concrete state shape.
 
 ## Next action
 
-Use the inspector with state signals and nested inventory at the start of the next repository task. Use `registry/catalog.md` to choose among P0 practices and triggered P1-P3 options. Reconsider browser candidates only when a concrete persistent browser task appears, and external skills only when a named skill has a representative Celestan task and an isolated evaluation plan.
+Use the inspector with state signals and nested inventory at the start of the next repository task. Treat signals as orientation, then read the authoritative state file before consequential decisions. Use `registry/catalog.md` to choose among P0 practices and triggered P1-P3 options. Reconsider browser candidates only when a concrete persistent browser task appears, and external skills only when a named skill has a representative Celestan task and an isolated evaluation plan.
 
 ## Release
 
@@ -97,4 +100,4 @@ Use the inspector with state signals and nested inventory at the start of the ne
 
 ## Stopping point
 
-`AUTONOMY_IDLE` - `RAD-001`, `RAD-002`, and `RAD-003` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion, and `RAD-003` produced no candidate with demonstrated incremental value. The ranked catalog is available for triggered selection, but no clean representative browser task or named skill evaluation currently justifies further work.
+`AUTONOMY_IDLE` - `RAD-001`, `RAD-002`, and `RAD-003` were boundedly evaluated and deliberately not promoted; `RAD-002` has a repeatable Windows runtime assertion, and `RAD-003` produced no candidate with demonstrated incremental value. `E1.S9` confirmed the inspector's signals are useful orientation but not a replacement for authoritative state reading. The ranked catalog is available for triggered selection, but no clean representative browser task or named skill evaluation currently justifies further work.

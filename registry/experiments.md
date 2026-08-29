@@ -62,3 +62,12 @@
 - **Success signal:** A candidate reveals a materially missing action space, or a recurring reusable method is strong enough to warrant a separately bounded evaluation.
 - **Failure signal:** Rankings are too noisy, inaccessible, duplicative, or unsupported by task evidence; retain the survey as negative discovery evidence and do not install candidates.
 - **Current result:** The survey produced a shortlist but no promotion candidate. `agent-browser` overlaps the unresolved Playwright path; `tdd`, `systematic-debugging`, and `verification-before-completion` overlap practices already enforced locally. Reddit results were not usable because search/API access returned no evidence/403. Keep `RAD-003` evaluated and require a concrete task before deeper candidate evaluation.
+
+## EXP-008 - second real cold-start state-signal evaluation
+
+- **Question:** Do bounded state signals remain useful across different durable-state shapes without replacing authoritative state reading?
+- **Hypothesis:** Recognized headings and labels will expose enough orientation to reduce archaeology while preserving an explicit boundary around missing or unconventional state.
+- **Smallest test:** Run the inspector with JSON signals and nested inventory on BorderCrossing and SuperSimpleGames, then compare the report with their current state files.
+- **Success signal:** The report exposes actionable current direction and verification context for at least one real project, while omissions are visible and non-deceptive.
+- **Failure signal:** Signals are misleading, too noisy, or imply completeness; narrow or retire the extension.
+- **Current result:** SuperSimpleGames exposed objective, milestone, open questions, evidence gaps, and next action from headings. BorderCrossing exposed current status and the latest next story from a label-heavy state, but no objective heading and no complete history. Keep the bounded extension as orientation only; require the full state file for consequential decisions and do not add semantic inference.
