@@ -80,7 +80,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - The neighboring project's Git metadata is inaccessible to the current Windows identity because Git's safe-directory check rejects its ownership; Foundry did not change that configuration.
 - Heading extraction can miss projects that store state in prose, non-Markdown files, or unconventional headings; it is not semantic project understanding.
 - Nested marker output can still be noisy in large multi-project repositories, especially Terraform modules and .NET project trees; no promotion decision is made from the sample alone.
-- Labeled state signals have fixture and one real-project coverage, but their usefulness and noise level need another real cold-start task.
+- Labeled state signals have fixture and two real-project coverage; they remain useful orientation but do not replace authoritative state reading.
 - A second cold-start run confirmed that signals can expose the operative objective, milestone, open questions, evidence gaps, and next action in a conventional state file; a label-heavy state file exposed only its recognized status and latest next-story records, so manual reading remains required.
 - Latest-record collapsing is deterministic but assumes later labeled records supersede earlier ones; projects with a different chronology may still need a narrower explicit state format.
 - Playwright MCP has no representative Celestan task evidence beyond documentation comparison; its `Evaluated` state must not be treated as an available default.
