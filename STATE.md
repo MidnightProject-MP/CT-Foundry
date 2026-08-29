@@ -17,11 +17,11 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - **Evaluation E1.S7:** external agent-skill leaderboard survey. **Skills.sh, OpenCode docs, GitHub, and attempted Reddit signals reviewed; no candidate promoted.**
 - **Decision aid E1.S8:** ranked capability idea catalog. **Top ideas scored by fit, option value, evidence, risk, and evaluation effort; no speculative installation.**
 - **Evaluation E1.S9:** second real cold-start evaluation of bounded state signals. **Useful on a conventional headed state file; partial on a label-heavy file; retained without semantic expansion.**
-- **Capability E1.S10:** Celestan Observer suite. **Observer 1.1.0 is available with versioned Execution Digests, optional runtime orchestration telemetry, deterministic execution-distribution measurements, evidence-citing semantic orchestration assessments, immutable ledger storage, authoritative joined observed records, consolidation, coverage, policy decisions, and append-only Chronicle generation. Runtime scheduling and any future enforcement remain CT-Runtime responsibilities.**
+- **Capability E1.S10:** Celestan Observer suite. **Observer 1.1.0 is available with versioned Execution Digests, optional orchestration and model/runtime telemetry, deterministic covered aggregates, evidence-citing semantic orchestration/model-routing assessments, immutable ledger storage, authoritative joined observed records, consolidation, coverage, policy decisions, and append-only Chronicle generation. Runtime scheduling/capture and any future enforcement remain CT-Runtime responsibilities.**
 
 ## Current milestone
 
-**E1.S10 - Celestan Observer 1.1.0.** The additive implementation makes execution distribution observable while preserving the boundary between mechanical activity proxies and semantic orchestration judgment. The capability remains `Available`, not preferred or enforcing.
+**E1.S10 - Celestan Observer 1.1.0.** The additive implementation makes execution distribution and bounded model/runtime facts observable while preserving the boundary between mechanical activity and semantic orchestration/routing judgment. The capability remains `Available`, not preferred or enforcing.
 
 ## Observations
 
@@ -43,6 +43,9 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - A bounded orchestration audit found parent-retained mutation-call proxies of 52/52 (100%, zero children) for Observer development, 448/471 (95.1%) for focal recent BorderCrossing combined parents, and 1021/1205 (84.7%) across all reviewed post-2026-08-23 sessions. The overlapping cohorts and tool-call counts do not establish that work was delegable or policy was violated.
 - Observer 1.1.0 makes optional runtime-supplied task availability, parent/worker session or task counts, and parent/delegated mutation calls measurable. Missing metadata and zero denominators remain explicitly unavailable.
 - A single authoritative joined-record view contains both pending digests and validated semantic projections. Consolidation and Chronicle filter observed records; coverage distinguishes processed-pending records from missing records.
+- OpenCode assistant messages expose provider/model IDs, variant, agent/mode, timestamps, token/cache dimensions, and cost; task metadata exposes child lineage/model; tool parts expose status/time/error. It does not expose authoritative retry/fallback intent, context limit, or session finish, and currently observed local costs are uniformly zero rather than established measured zero.
+- Observer now normalizes optional sessions, invocations, failures, and transition events with strict safe fields and explicit measurement availability. Invocation facts are the atomic additive basis; session measurements are used only when no invocations exist.
+- Deterministic aggregates retain identity/outcome dimensions, independent token dimensions, valid context pressure, tool/retry/failure/transition facts, distinct wall/additive duration, and per-currency cost with dimension-level coverage. They make no quality, efficiency, routing, fault, or universal-score claim.
 
 ## Decisions
 
@@ -74,6 +77,7 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Semantic orchestration assessment is first-class but optional for V1 compatibility; it requires a bounded outcome, cited execution evidence, and explicit uncertainty.
 - Observer does not enforce delegation or route work. CT-Runtime owns truthful telemetry capture and is the future enforcement owner only if longitudinal evidence warrants controls.
 - Semantic sidecars are untrusted inputs at join time: only allowlisted semantic fields are projected, while digest-owned execution identity, provenance, timestamps, and measurements remain immutable.
+- Explicit semantic model-routing assessments are task-conditioned, evidence/telemetry-citing, uncertain, and separate runtime attribution from semantic cause attribution. Matching routing-policy signals may consolidate to review but cannot auto-apply routing changes.
 
 ## Open questions
 
@@ -104,11 +108,12 @@ Find recurring work, friction, or capability gaps in Celestan's operation, and i
 - Runtime inventory is resolved: no CT-Runtime repository, scheduler workflow, service, or execution store is present under `C:\Celestan`; only the declarative external wake-up capability is documented in Identity.
 - The orchestration audit attributes tool mutation calls, not semantic task units, work difficulty, quality, or delegation opportunity. Its cohorts overlap and cannot be combined into a larger sample.
 - Runtime-supplied parent/worker attribution has fixture validation but no production CT-Runtime producer; absent metadata remains unavailable rather than inferred.
+- Model/runtime telemetry has comprehensive fixture coverage but no production CT-Runtime producer. OpenCode's missing retry/fallback intent, context-limit, and finish facts remain unavailable; local zero costs remain unavailable unless a runtime can assert genuine measurement.
 - The bounded audit is reproducible from the external OpenCode database using fixed UTC bounds and named session roots documented in `docs/observer-orchestration-audit-2026-08-29.md`; raw logs are not copied into Git and aggregate totals are not automated-test claims.
 
 ## Next action
 
-Integrate Observer's stable CLI/API and optional orchestration contract into CT-Runtime when that repository and scheduler exist. CT-Runtime should supply truthful attribution and joined records to coverage, keep raw evidence outside Git, and require semantic coverage before consolidation. Do not add enforcement unless longitudinal evidence establishes a durable semantic under-delegation problem.
+Integrate Observer's stable CLI/API and optional orchestration/model-runtime contract into CT-Runtime when that repository and scheduler exist. CT-Runtime should supply truthful available facts, keep absent facts unavailable and raw evidence outside Git, and require semantic coverage before consolidation. Do not add enforcement or simplistic model optimization unless longitudinal task-conditioned semantic evidence establishes a durable need.
 
 ## Release
 
@@ -118,4 +123,4 @@ Integrate Observer's stable CLI/API and optional orchestration contract into CT-
 
 ## Stopping point
 
-`AUTONOMY_CONTINUE` - E1.S10 Observer 1.1.0 is implemented and locally verified but remains available rather than preferred. Mechanical distribution evidence is now visible without being promoted to semantic policy proof; CT-Runtime integration, real retrieval/model execution, and longitudinal records remain unverified. The next justified work is runtime integration when its repository and scheduler contract exist, not enforcement inside Observer.
+`AUTONOMY_CONTINUE` - E1.S10 Observer 1.1.0 is implemented and locally verified but remains available rather than preferred. Mechanical distribution and model/runtime evidence are visible without becoming quality, routing, fault, or policy proof; CT-Runtime integration, real capture/model execution, and longitudinal records remain unverified. The next justified work is runtime integration when its repository and scheduler contract exist, not enforcement or scoring inside Observer.

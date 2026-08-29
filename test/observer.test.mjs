@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { createDigest, createSemanticObservationTask, deriveExecutionDistribution, OBSERVER_VERSION, ORCHESTRATION_OUTCOMES, SEMANTIC_SCHEMA, validateSemanticObservation } from '../capabilities/observer/schema.mjs';
+import { createDigest, createSemanticObservationTask, deriveExecutionDistribution, FAILURE_CATEGORIES, MODEL_ROUTING_OUTCOMES, OBSERVER_VERSION, ORCHESTRATION_OUTCOMES, SEMANTIC_SCHEMA, validateSemanticObservation } from '../capabilities/observer/schema.mjs';
 import { ObserverStore, appendChronicle, consolidate, coverageReport, createPolicyDecision, digestAndAppend, joinedRecords } from '../capabilities/observer/observer.mjs';
 
 const execution = (id, project, status = 'success') => ({ executionId: id, project, environment: 'fixture', status, startedAt: '2026-08-29T10:00:00Z', finishedAt: '2026-08-29T10:05:00Z' });
@@ -19,6 +19,75 @@ test('creates a compact versioned digest and preserves provenance', () => {
   assert.deepEqual(digest.verification, { tests: 'passed' });
   assert.deepEqual(digest.provenance.references, ['actions://1']);
   assert.equal('approaches' in digest, false);
+  assert.deepEqual(digest.modelRuntimeTelemetry, { availability: 'unavailable', reason: 'runtime-model-telemetry-not-supplied' });
+});
+
+test('normalizes comprehensive model runtime telemetry with explicit availability', async () => {
+  const telemetry = JSON.parse(await readFile(new URL('./fixtures/observer-model-runtime-telemetry.json', import.meta.url), 'utf8'));
+  const digest = createDigest({ execution: { ...execution('telemetry', 'alpha'), modelRuntimeTelemetry: telemetry }, evidence: { references: ['fixture://telemetry', 'fixture://failure-1', 'fixture://transition-1'] } });
+  const normalized = digest.modelRuntimeTelemetry;
+  assert.equal(normalized.availability, 'available');
+  assert.equal(normalized.invocations[0].tokens.output.availability, 'available');
+  assert.equal(normalized.invocations[0].tokens.output.value, 0);
+  assert.equal(normalized.invocations[1].tokens.output.availability, 'unavailable');
+  assert.equal(normalized.sessions[0].cost.availability, 'unavailable');
+  assert.equal(normalized.invocations[0].cost.amount, 0);
+  assert.equal(normalized.failures[0].runtimeAttribution.source, 'runtime-reported');
+  assert.equal(normalized.aggregate.basis, 'invocations');
+  assert.equal(createSemanticObservationTask(digest).evidencePackage.modelRuntimeTelemetry.aggregate.counts.invocations, 2);
+});
+
+test('aggregates invocation facts once with partial independent dimensions and distinct durations', async () => {
+  const telemetry = JSON.parse(await readFile(new URL('./fixtures/observer-model-runtime-telemetry.json', import.meta.url), 'utf8'));
+  const aggregate = createDigest({ execution: { ...execution('aggregate', 'alpha'), modelRuntimeTelemetry: telemetry }, evidence: { references: ['fixture://failure-1', 'fixture://transition-1'] } }).modelRuntimeTelemetry.aggregate;
+  assert.deepEqual(aggregate.coverage, { basisRecords: 2, sessionsSupplied: 1, invocationsSupplied: 2, failuresSupplied: 1, transitionEventsSupplied: 1 });
+  assert.equal(aggregate.tokens.input.value, 15);
+  assert.equal(aggregate.tokens.output.value, 0);
+  assert.equal(aggregate.tokens.output.availability, 'partial');
+  assert.equal(aggregate.tokens.reasoning.value, 3);
+  assert.equal(aggregate.tokens.cacheRead.value, 4);
+  assert.equal(aggregate.tokens.cacheWrite.value, 2);
+  assert.equal(aggregate.tokens.total.value, 24);
+  assert.equal(aggregate.context.pressure.coverage.available, 1);
+  assert.equal(aggregate.context.pressure.average, 0.2);
+  assert.equal(aggregate.durations.executionWall.value, 300000);
+  assert.equal(aggregate.durations.additiveInvocationOrSession.sum, 4000);
+  assert.deepEqual(aggregate.costs.byCurrency, [{ currency: 'EUR', amount: 2 }, { currency: 'USD', amount: 0 }]);
+  assert.equal(aggregate.transitions.events, 1);
+  for (const facet of ['retry', 'fallback', 'provider-switch', 'model-switch']) assert.equal(aggregate.transitions.facets[facet], 1);
+});
+
+test('uses session measurements only when no invocations exist', () => {
+  const telemetry = { sessions: [{ sessionId: 'session-only', tokens: { input: 5, output: 0, total: 5 }, tools: { calls: 0, mutations: 0, failedCalls: 0 }, status: 'success' }] };
+  const aggregate = createDigest({ execution: { ...execution('session-only', 'alpha'), modelRuntimeTelemetry: telemetry } }).modelRuntimeTelemetry.aggregate;
+  assert.equal(aggregate.basis, 'sessions-without-invocations');
+  assert.equal(aggregate.tokens.input.value, 5);
+  assert.equal(aggregate.tokens.output.value, 0);
+  assert.equal(aggregate.tokens.reasoning.availability, 'unavailable');
+  assert.deepEqual(aggregate.tokens.reasoning.coverage, { available: 0, expected: 1 });
+});
+
+test('rejects duplicate telemetry IDs and invalid cross-references', () => {
+  assert.throws(() => createDigest({ execution: { ...execution('duplicate', 'alpha'), modelRuntimeTelemetry: { sessions: [{ sessionId: 'same' }], invocations: [{ invocationId: 'same', sessionId: 'same' }] } } }), /Duplicate model runtime telemetry ID/);
+  assert.throws(() => createDigest({ execution: { ...execution('unknown-session', 'alpha'), modelRuntimeTelemetry: { invocations: [{ invocationId: 'i', sessionId: 'absent' }] } } }), /Unknown sessionId/);
+  assert.throws(() => createDigest({ execution: { ...execution('unknown-transition', 'alpha'), modelRuntimeTelemetry: { transitions: [{ transitionId: 't', facets: ['retry'], fromInvocationId: 'absent' }] } } }), /Unknown transition/);
+  assert.throws(() => createDigest({ execution: { ...execution('cyclic-lineage', 'alpha'), modelRuntimeTelemetry: { invocations: [{ invocationId: 'a', parentInvocationId: 'b' }, { invocationId: 'b', parentInvocationId: 'a' }] } } }), /Cyclic parentInvocationId lineage/);
+  assert.throws(() => createDigest({ execution: { ...execution('null-record', 'alpha'), modelRuntimeTelemetry: { failures: [null] } } }), /failures\[0\] must be an object/);
+});
+
+test('supports every broad failure category and rejects unsafe failure facts', () => {
+  const failures = FAILURE_CATEGORIES.map((category, index) => ({ failureId: `failure-${index}`, invocationId: 'invoke', category }));
+  const digest = createDigest({ execution: { ...execution('failures', 'alpha'), modelRuntimeTelemetry: { invocations: [{ invocationId: 'invoke', status: 'failure' }], failures } } });
+  assert.deepEqual(digest.modelRuntimeTelemetry.aggregate.failures.categories.values.map((item) => item.value).sort(), [...FAILURE_CATEGORIES].sort());
+  assert.throws(() => createDigest({ execution: { ...execution('bad-category', 'alpha'), modelRuntimeTelemetry: { failures: [{ failureId: 'f', category: 'bad-category' }] } } }), /category must be one of/);
+  for (const field of ['message', 'headers', 'body', 'stack', 'toolArguments', 'toolOutput']) assert.throws(() => createDigest({ execution: { ...execution(`unsafe-${field}`, 'alpha'), modelRuntimeTelemetry: { failures: [{ failureId: 'f', category: 'unknown', [field]: field === 'headers' ? {} : 'secret' }] } } }), /unsupported or unsafe fields/);
+});
+
+test('does not mechanically classify infrastructure failure as model quality', () => {
+  const telemetry = { invocations: [{ invocationId: 'i', provider: 'provider', model: 'model', status: 'failure' }], failures: [{ failureId: 'f', invocationId: 'i', category: 'provider-limit', errorCode: 'QUOTA' }] };
+  const normalized = createDigest({ execution: { ...execution('infra', 'alpha'), modelRuntimeTelemetry: telemetry } }).modelRuntimeTelemetry;
+  assert.deepEqual(normalized.aggregate.failures.categories.values, [{ value: 'provider-limit', count: 1 }]);
+  assert.equal(JSON.stringify(normalized).includes('model-output-quality'), false);
 });
 
 test('derives execution-distribution formulas without mixing metrics into generic signals', () => {
@@ -92,6 +161,30 @@ test('semantic orchestration assessment accepts every bounded outcome and requir
   assert.throws(() => validateSemanticObservation(base, 'assessment', { allowedEvidenceReferences: ['fixture://other'] }), /unknown evidence reference/);
 });
 
+test('semantic model routing assessment validates outcomes, evidence, telemetry references, and attributions', async () => {
+  const telemetry = JSON.parse(await readFile(new URL('./fixtures/observer-model-runtime-telemetry.json', import.meta.url), 'utf8'));
+  const digest = createDigest({ execution: { ...execution('routing-assessment', 'alpha'), modelRuntimeTelemetry: telemetry }, evidence: { references: ['fixture://routing', 'fixture://failure-1', 'fixture://transition-1'] } });
+  const task = createSemanticObservationTask(digest);
+  assert.deepEqual(task.modelRoutingAssessment.outcomes, MODEL_ROUTING_OUTCOMES);
+  assert.equal(task.evidencePackage.telemetryReferences.includes('failure-1'), true);
+  for (const outcome of MODEL_ROUTING_OUTCOMES) {
+    const assessment = {
+      outcome,
+      taskCondition: 'implementation tasks with this provider limit',
+      summary: 'Fallback restored execution; suitability remains conditional.',
+      uncertainty: 'One execution cannot establish general routing effectiveness.',
+      evidenceReferences: ['fixture://routing'],
+      telemetryReferences: ['invoke-1', 'failure-1'],
+      attributions: [{ kind: 'cause', category: 'provider-limit', targetType: 'provider', target: 'opencode', confidence: 'high', summary: 'The runtime reported a rate limit.', evidenceReferences: ['fixture://routing'], telemetryReferences: ['failure-1'] }]
+    };
+    assert.equal(validateSemanticObservation(semantic('routing-assessment', 'success', [], { modelRoutingAssessment: assessment }), 'routing-assessment', { allowedEvidenceReferences: ['fixture://routing'], allowedTelemetryReferences: task.evidencePackage.telemetryReferences }).modelRoutingAssessment.outcome, outcome);
+  }
+  const base = semantic('routing-assessment', 'success', [], { modelRoutingAssessment: { outcome: 'mixed', taskCondition: 'implementation', summary: 'Mixed.', uncertainty: 'Limited evidence.', evidenceReferences: ['fixture://routing'], telemetryReferences: ['invoke-1'] } });
+  assert.throws(() => validateSemanticObservation({ ...base, modelRoutingAssessment: { ...base.modelRoutingAssessment, outcome: 'best' } }, 'routing-assessment'), /outcome must be one of/);
+  assert.throws(() => validateSemanticObservation({ ...base, modelRoutingAssessment: { ...base.modelRoutingAssessment, telemetryReferences: ['absent'] } }, 'routing-assessment', { allowedEvidenceReferences: ['fixture://routing'], allowedTelemetryReferences: task.evidencePackage.telemetryReferences }), /unknown reference/);
+  assert.throws(() => validateSemanticObservation({ ...base, modelRoutingAssessment: { ...base.modelRoutingAssessment, taskCondition: '' } }, 'routing-assessment'), /taskCondition is required/);
+});
+
 test('ledger is idempotent and consolidation distinguishes project/global signals', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
   const store = new ObserverStore(root);
@@ -104,6 +197,32 @@ test('ledger is idempotent and consolidation distinguishes project/global signal
   assert.equal(result.findings[0].recommendedDestination, 'global-lesson-candidate');
   assert.equal((await readFile(path.join(root, 'cursor.json'), 'utf8')).includes('"lastExecutionId": "b"'), true);
   assert.deepEqual(result.inputRecords, ['a', 'b']);
+});
+
+test('execution IDs with path-like characters have distinct records and remain idempotent', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
+  const store = new ObserverStore(root);
+  const first = await digestAndAppend(store, input('a/b', 'alpha'));
+  const second = await digestAndAppend(store, input('a\\b', 'alpha'));
+  assert.notEqual(store.recordPath('a/b'), store.recordPath('a\\b'));
+  assert.equal(first.result.status, 'processed');
+  assert.equal(second.result.status, 'processed');
+  assert.equal((await digestAndAppend(store, input('a/b', 'alpha'))).result.status, 'duplicate');
+  assert.equal((await store.all()).length, 2);
+});
+
+test('semantic failure records bounded structured reasons without raw error leakage', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
+  const store = new ObserverStore(root);
+  const result = await store.appendSemanticFailure('failure-id', { errorClass: 'Error', reason: 'raw secret should not persist', retryable: true });
+  assert.equal(result.reason, 'semantic-observation-rejected');
+  assert.equal(result.errorClass, 'unknown');
+  assert.equal((await readFile(path.join(root, 'lifecycle.ndjson'), 'utf8')).includes('raw secret'), false);
+});
+
+test('semantic signals are bounded and allowlisted before consumers read them', () => {
+  assert.throws(() => validateSemanticObservation(semantic('unsafe-signal', 'success', [{ type: 'made-up', text: 'x' }]), 'unsafe-signal'), /type must be one of/);
+  assert.throws(() => validateSemanticObservation(semantic('too-many-signals', 'success', Array.from({ length: 51 }, () => ({ type: 'lesson', text: 'x' }))), 'too-many-signals'), /at most 50/);
 });
 
 test('tooling friction feeds Foundry while weak identity signals stay review-only', async () => {
@@ -120,6 +239,24 @@ test('tooling friction feeds Foundry while weak identity signals stay review-onl
   assert.equal(byKey['identity-idea'].status, 'observation');
   const reinforced = await consolidate(store, { existingLessons: [{ key: 'broken-tool' }] });
   assert.equal(reinforced.findings.find((finding) => finding.key === 'broken-tool').existingMatch, true);
+});
+
+test('routing-policy candidates consolidate only under the same task condition and remain review-only', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
+  const store = new ObserverStore(root);
+  const routing = (taskCondition) => ({ key: 'prefer-fallback', type: 'routing-policy', taskCondition, text: 'Review fallback routing after repeated provider limits.' });
+  await digestAndAppend(store, input('route-a', 'alpha', 'success', [routing('implementation under provider limits')]));
+  await digestAndAppend(store, input('route-b', 'beta', 'success', [routing('implementation under provider limits')]));
+  await digestAndAppend(store, input('route-c', 'gamma', 'success', [routing('documentation tasks')]));
+  const findings = (await consolidate(store)).findings.filter((finding) => finding.type === 'routing-policy');
+  assert.equal(findings.length, 2);
+  const repeated = findings.find((finding) => finding.taskCondition === 'implementation under provider limits');
+  assert.equal(repeated.status, 'candidate');
+  assert.equal(repeated.recommendedDestination, 'routing-review');
+  assert.equal(findings.find((finding) => finding.taskCondition === 'documentation tasks').status, 'observation');
+  assert.throws(() => createPolicyDecision(repeated, 'accept', 'routing-review'), /review-only/);
+  assert.equal(createPolicyDecision(repeated, 'defer', 'routing-review').destination, 'routing-review');
+  assert.throws(() => validateSemanticObservation(semantic('bad-route', 'success', [{ key: 'x', type: 'routing-policy', text: 'Unconditioned.' }]), 'bad-route'), /taskCondition/);
 });
 
 test('coverage detects missing and incomplete executions instead of silently skipping', () => {
@@ -168,19 +305,21 @@ test('joined sidecars cannot overwrite immutable digest-owned fields', async () 
   const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
   const store = new ObserverStore(root);
   const orchestration = { taskAvailable: true, parentSessionCount: 1, workerSessionCount: 0, parentMutationCalls: 12, delegatedMutationCalls: 0 };
-  const { digest } = await digestAndAppend(store, { execution: { ...execution('injection', 'alpha'), orchestration }, evidence: { source: 'fixture', references: ['fixture://injection'], evidenceDigest: 'immutable' } });
+  const modelRuntimeTelemetry = { invocations: [{ invocationId: 'immutable-invocation', provider: 'provider', model: 'model', tokens: { total: 0 }, status: 'success' }] };
+  const { digest } = await digestAndAppend(store, { execution: { ...execution('injection', 'alpha'), orchestration, modelRuntimeTelemetry }, evidence: { source: 'fixture', references: ['fixture://injection'], evidenceDigest: 'immutable' } });
   const injected = semantic('injection', 'success', [], {
     schema: SEMANTIC_SCHEMA,
     observerVersion: '999.0.0',
     execution: { id: 'other', project: 'other', status: 'failure', startedAt: 'never', finishedAt: 'never' },
     provenance: { references: ['attacker://replacement'] },
     executionDistribution: { availability: 'available', mutationCallCounts: { total: 0 } },
+    modelRuntimeTelemetry: { availability: 'available', aggregate: { basis: 'attacker' } },
     observedAt: 'never',
     lifecycle: { state: 'consolidated' }
   });
   await store.appendSemantic('injection', injected);
   const [joined] = await joinedRecords(store);
-  for (const field of ['schema', 'observerVersion', 'execution', 'provenance', 'executionDistribution', 'observedAt']) assert.deepEqual(joined[field], digest[field]);
+  for (const field of ['schema', 'observerVersion', 'execution', 'provenance', 'executionDistribution', 'modelRuntimeTelemetry', 'observedAt']) assert.deepEqual(joined[field], digest[field]);
   assert.equal(joined.lifecycle.state, 'observed');
   assert.equal(joined.summary, 'success fixture');
   assert.equal('executionId' in joined, false);

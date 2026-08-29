@@ -16,6 +16,42 @@
       "delegatedTaskCount": 0,
       "parentMutationCalls": 52,
       "delegatedMutationCalls": 0
+    },
+    "modelRuntimeTelemetry": {
+      "sessions": [
+        {
+          "sessionId": "dogfood-1",
+          "provider": "opencode",
+          "model": "fixture-model",
+          "agent": "Celestan",
+          "role": "orchestrator",
+          "task": { "type": "verification", "label": "Observer smoke", "id": "E1.S10" },
+          "startedAt": "2026-08-29T10:00:00Z",
+          "finishedAt": "2026-08-29T10:05:00Z",
+          "tokens": { "input": 0, "output": 0, "reasoning": 0, "cacheRead": 0, "cacheWrite": 0, "total": 0 },
+          "tools": { "calls": 52, "mutations": 52, "failedCalls": 0 },
+          "cost": { "amount": 0, "currency": "USD", "measured": false },
+          "status": "success",
+          "outcome": "success"
+        }
+      ],
+      "invocations": [
+        {
+          "invocationId": "dogfood-invocation-1",
+          "sessionId": "dogfood-1",
+          "provider": "opencode",
+          "model": "fixture-model",
+          "agent": "Celestan",
+          "role": "orchestrator",
+          "task": { "type": "verification", "label": "Observer smoke", "id": "E1.S10" },
+          "durationMs": 300000,
+          "tokens": { "input": 0, "output": 0, "reasoning": 0, "cacheRead": 0, "cacheWrite": 0, "total": 0 },
+          "tools": { "calls": 52, "mutations": 52, "failedCalls": 0 },
+          "cost": { "amount": 0, "currency": "USD", "measured": false },
+          "status": "success",
+          "outcome": "success"
+        }
+      ]
     }
   },
   "evidence": {

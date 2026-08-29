@@ -1,0 +1,110 @@
+{
+  "sessions": [
+    {
+      "sessionId": "session-parent",
+      "provider": "opencode",
+      "model": "gpt-5.6-sol",
+      "providerVersion": "zen-2026-08",
+      "modelVersion": "gpt-5.6-sol-2026-08-20",
+      "agent": "Celestan",
+      "role": "orchestrator",
+      "task": { "type": "implementation", "label": "Observer telemetry", "id": "E1.S10" },
+      "startedAt": "2026-08-29T10:00:00Z",
+      "finishedAt": "2026-08-29T10:00:04Z",
+      "turns": 2,
+      "tokens": { "input": 10, "output": 0, "reasoning": 3, "cacheRead": 4, "cacheWrite": 0, "total": 17 },
+      "context": { "usedTokens": 20, "limitTokens": 100, "compactionCount": 0 },
+      "tools": { "calls": 2, "mutations": 1, "failedCalls": 0, "byName": { "apply_patch": { "calls": 1, "mutations": 1, "failedCalls": 0 } } },
+      "retry": { "attempt": 1, "retryCount": 0, "backoffMs": 0, "waitMs": 0 },
+      "cost": { "amount": 0, "currency": "USD", "measured": false },
+      "status": "success",
+      "outcome": "success"
+    }
+  ],
+  "invocations": [
+    {
+      "invocationId": "invoke-1",
+      "sessionId": "session-parent",
+      "provider": "opencode",
+      "model": "gpt-5.6-sol",
+      "providerVersion": "zen-2026-08",
+      "modelVersion": "gpt-5.6-sol-2026-08-20",
+      "agent": "Celestan",
+      "role": "orchestrator",
+      "task": { "type": "implementation", "label": "Observer telemetry", "id": "E1.S10" },
+      "startedAt": "2026-08-29T10:00:00Z",
+      "finishedAt": "2026-08-29T10:00:01Z",
+      "turns": 1,
+      "tokens": { "input": 10, "output": 0, "reasoning": 3, "cacheRead": 4, "cacheWrite": 0, "total": 17 },
+      "context": { "usedTokens": 20, "limitTokens": 100, "compactionCount": 0 },
+      "tools": { "calls": 2, "mutations": 1, "failedCalls": 1, "byName": { "bash": { "calls": 2, "mutations": 1, "failedCalls": 1 } } },
+      "retry": { "attempt": 1, "retryCount": 1, "backoffMs": 20, "waitMs": 20 },
+      "cost": { "amount": 0, "currency": "USD", "measured": true },
+      "status": "failure",
+      "outcome": "failure"
+    },
+    {
+      "invocationId": "invoke-2",
+      "sessionId": "session-parent",
+      "parentInvocationId": "invoke-1",
+      "provider": "other-provider",
+      "model": "recovery-model",
+      "modelVersion": "recovery-model-v2",
+      "agent": "worker",
+      "role": "executor",
+      "task": { "type": "implementation", "label": "Observer telemetry", "id": "E1.S10" },
+      "durationMs": 3000,
+      "turns": 0,
+      "tokens": { "input": 5, "reasoning": 0, "cacheWrite": 2, "total": 7 },
+      "context": { "usedTokens": 50, "limitTokens": 0, "compactionCount": 1 },
+      "tools": { "calls": 0, "mutations": 0, "failedCalls": 0 },
+      "retry": { "attempt": 2, "retryCount": 0 },
+      "cost": { "amount": 2, "currency": "EUR", "measured": true },
+      "status": "success",
+      "outcome": "success"
+    }
+  ],
+  "failures": [
+    {
+      "failureId": "failure-1",
+      "sessionId": "session-parent",
+      "invocationId": "invoke-1",
+      "category": "provider-limit",
+      "errorClass": "RateLimitError",
+      "errorCode": "RATE_LIMITED",
+      "httpStatus": 429,
+      "timestamp": "2026-08-29T10:00:01Z",
+      "durationBeforeFailureMs": 1000,
+      "retryable": true,
+      "retryCount": 1,
+      "backoffMs": 20,
+      "waitMs": 20,
+      "sameModelSubsequentSuccess": false,
+      "fallbackProvider": "other-provider",
+      "fallbackModel": "recovery-model",
+      "fallbackOutcome": "success",
+      "tokens": { "input": 10, "output": 0, "reasoning": 3, "cacheRead": 4, "cacheWrite": 0, "total": 17 },
+      "context": { "usedTokens": 20, "limitTokens": 100, "compactionCount": 0 },
+      "evidenceReferences": ["fixture://failure-1"],
+      "runtimeAttribution": { "cause": "provider-rate-limit", "confidence": "high" }
+    }
+  ],
+  "transitions": [
+    {
+      "transitionId": "transition-1",
+      "facets": ["retry", "fallback", "provider-switch", "model-switch"],
+      "fromInvocationId": "invoke-1",
+      "toInvocationId": "invoke-2",
+      "timestamp": "2026-08-29T10:00:01Z",
+      "fromProvider": "opencode",
+      "toProvider": "other-provider",
+      "fromModel": "gpt-5.6-sol",
+      "toModel": "recovery-model",
+      "retryCount": 1,
+      "backoffMs": 20,
+      "waitMs": 20,
+      "outcome": "success",
+      "evidenceReferences": ["fixture://transition-1"]
+    }
+  ]
+}

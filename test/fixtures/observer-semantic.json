@@ -11,6 +11,14 @@
     "uncertainty": "Mutation-call distribution alone cannot establish whether delegation was available, appropriate, or beneficial.",
     "evidenceReferences": ["fixture://observer-session-dogfood"]
   },
+  "modelRoutingAssessment": {
+    "outcome": "insufficient-evidence",
+    "taskCondition": "Observer verification fixture",
+    "summary": "The fixture identifies a provider and model but does not establish comparative suitability.",
+    "uncertainty": "Synthetic zero-token and zero-cost facts cannot establish quality, efficiency, or routing correctness.",
+    "evidenceReferences": ["fixture://observer-session-dogfood"],
+    "telemetryReferences": ["dogfood-invocation-1"]
+  },
   "signals": [
     {
       "key": "semantic-coverage",

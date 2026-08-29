@@ -26,7 +26,7 @@ if (command === 'digest') {
     const result = await store.appendSemantic(executionId, JSON.parse(await readFile(option('--input'), 'utf8')));
     console.log(JSON.stringify(result));
   } catch (error) {
-    console.error(JSON.stringify(await store.appendSemanticFailure(executionId, error.message, Number(option('--attempt', '1')))));
+    console.error(JSON.stringify(await store.appendSemanticFailure(executionId, { errorClass: error.name, reason: 'semantic-observation-rejected' }, Number(option('--attempt', '1')))));
     process.exitCode = 1;
   }
 } else if (command === 'consolidate') {
