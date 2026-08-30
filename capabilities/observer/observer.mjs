@@ -114,6 +114,7 @@ export function createPolicyDecision(candidate, action, destinationName) {
 }
 
 export async function appendPolicyDecision(store, decision) {
+  if (typeof store.appendPolicyDecision === 'function') return store.appendPolicyDecision(decision);
   await store.init();
   await appendFile(path.join(store.root, 'policy-decisions.ndjson'), JSON.stringify(decision) + '\n');
   return decision;
@@ -140,10 +141,12 @@ export async function appendChronicle(store, period, outputPath, markdownPath = 
   const statuses = periodRecords.reduce((counts, record) => { const status = record.execution.status || 'unknown'; counts[status] = (counts[status] || 0) + 1; return counts; }, {});
   const notable = periodRecords.flatMap((r) => (r.failures || []).map((failure) => `${r.execution.project}: ${failure}`)).slice(0, 8);
   const entry = { schema: CHRONICLE_SCHEMA, observerVersion: OBSERVER_VERSION, period, generatedAt: now(), executionCount: periodRecords.length, narrative: narrative(period, periodRecords, statuses, notable), sourceExecutionIds: periodRecords.map((r) => r.execution.id) };
+  const markdown = renderChronicleMarkdown(entry, periodRecords);
+  if (typeof store.appendChronicleArtifact === 'function') await store.appendChronicleArtifact(entry, markdown);
   try { await readFile(outputPath); throw new Error(`Chronicle period already exists: ${period.start}`); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(outputPath, json(entry), { flag: 'wx' });
-  await writeFile(markdownPath, renderChronicleMarkdown(entry, periodRecords), { flag: 'wx' });
+  await writeFile(markdownPath, markdown, { flag: 'wx' });
   return entry;
 }
 
@@ -156,7 +159,10 @@ export async function joinedRecords(store) {
     }
     else {
       try {
-        const semantic = JSON.parse(await readFile(path.join(store.root, 'semantic', `${safe(record.execution.id)}.json`), 'utf8'));
+        const semantic = store.getSemantic
+          ? await store.getSemantic(record.execution.id)
+          : JSON.parse(await readFile(path.join(store.root, 'semantic', `${safe(record.execution.id)}.json`), 'utf8'));
+        if (!semantic) throw Object.assign(new Error('semantic sidecar not found'), { code: 'ENOENT' });
         validateSemanticObservation(semantic, record.execution.id, { allowedEvidenceReferences: record.provenance.references || [], allowedTelemetryReferences: telemetryReferenceIds(record.modelRuntimeTelemetry) });
         records.push({ ...record, ...projectSemanticObservation(semantic), lifecycle: { ...record.lifecycle, state: 'observed' } });
       } catch { records.push(record); }
@@ -194,4 +200,12 @@ export function coverageReport({ manifest = [], records = [], failures = [] }) {
   const missing = manifest.filter((item) => !processed.has(item.executionId)).map((item) => item.executionId);
   const semanticMissing = manifest.filter((item) => processed.has(item.executionId) && !observed.has(item.executionId)).map((item) => item.executionId);
   return { schema: 'celestan-observer-coverage-v1', checkedAt: now(), expected: manifest.length, processed: processed.size, semanticallyObserved: observed.size, missing, semanticMissing, failures, healthy: missing.length === 0 && semanticMissing.length === 0 && failures.length === 0 };
+}
+
+export async function appendCoverageSnapshot(store, input) {
+  const report = coverageReport(input);
+  if (typeof store.appendCoverageSnapshot === 'function') return store.appendCoverageSnapshot(report);
+  await store.init();
+  await appendFile(path.join(store.root, 'coverage.ndjson'), JSON.stringify(report) + '\n');
+  return report;
 }

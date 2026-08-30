@@ -3,18 +3,38 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { createDigest, createSemanticObservationTask, deriveExecutionDistribution, FAILURE_CATEGORIES, MODEL_ROUTING_OUTCOMES, OBSERVER_VERSION, ORCHESTRATION_OUTCOMES, SEMANTIC_SCHEMA, validateSemanticObservation } from '../capabilities/observer/schema.mjs';
-import { ObserverStore, appendChronicle, consolidate, coverageReport, createPolicyDecision, digestAndAppend, joinedRecords } from '../capabilities/observer/observer.mjs';
+import { createDigest, createSemanticObservationTask, deriveExecutionDistribution, FAILURE_CATEGORIES, MODEL_ROUTING_OUTCOMES, OBSERVER_VERSION, ORCHESTRATION_OUTCOMES, SEMANTIC_SCHEMA, validateSemanticObservation, normalizeHostRuntimeTelemetry } from '../capabilities/observer/schema.mjs';
+import { ObserverStore, appendChronicle, appendCoverageSnapshot, appendPolicyDecision, consolidate, coverageReport, createPolicyDecision, digestAndAppend, joinedRecords } from '../capabilities/observer/observer.mjs';
 
 const execution = (id, project, status = 'success') => ({ executionId: id, project, environment: 'fixture', status, startedAt: '2026-08-29T10:00:00Z', finishedAt: '2026-08-29T10:05:00Z' });
 const semantic = (id, status, signals = [], extra = {}) => ({ schema: SEMANTIC_SCHEMA, executionId: id, status: 'complete', summary: `${status} fixture`, confidence: 0.9, signals, ...extra });
 const input = (id, project, status, signals = [], extra = {}) => ({ execution: execution(id, project, status), evidence: { source: 'fixture', references: [`fixture://${id}`], ...extra }, semantic: semantic(id, status, signals) });
 
+test('host runtime telemetry is a separate validated contract', () => {
+  const host = normalizeHostRuntimeTelemetry({ availability: 'available', host: { instanceId: 'h1', provider: 'local', runtimeClass: 'job', region: 'test', architecture: 'amd64', os: 'linux', imageDigest: 'sha256:x', runtimeVersion: 'v2' }, coldStart: true, resourceLimits: { cpu: '2' }, cost: { measured: false } });
+  assert.equal(host.availability, 'available');
+  assert.throws(() => normalizeHostRuntimeTelemetry({ availability: 'available', password: 'secret' }), /unsafe fields/);
+  assert.equal(createDigest({ execution: { ...execution('host', 'alpha'), hostRuntimeTelemetry: host } }).hostRuntimeTelemetry.availability, 'available');
+});
+
+test('host telemetry deeply bounds samples, failures, resources, cost, and timestamps', () => {
+  const host = normalizeHostRuntimeTelemetry({ availability: 'partial', records: [
+    { schema: 'celestan-runtime-host-telemetry-v1', availability: 'available', sampleType: 'startup', sampledAt: '2026-08-29T10:00:00Z', startup: { coldStart: true, startedAt: '2026-08-29T10:00:00Z', durationMs: 12 }, resourceLimits: { cpu: '2', memory: 1024 }, cost: { measured: false, reason: 'not-measured' } },
+    { schema: 'celestan-runtime-host-telemetry-v1', availability: 'available', sampleType: 'termination', sampledAt: '2026-08-29T10:05:00Z', execution: { startedAt: '2026-08-29T10:00:00Z', finishedAt: '2026-08-29T10:05:00Z', durationMs: 300000, networkFailures: 1, providerFailures: 0, failures: [{ category: 'network', errorClass: 'TimeoutError', count: 1, timestamp: '2026-08-29T10:01:00Z', retryable: true }], termination: 'success' }, resources: { cpu: 1.5, memory: '512Mi' }, cost: { measured: true, amount: 0, currency: 'usd' } }
+  ] });
+  assert.equal(host.records[1].cost.currency, 'USD');
+  assert.equal(host.records[1].execution.failures[0].count, 1);
+  assert.throws(() => normalizeHostRuntimeTelemetry({ availability: 'available', execution: { failures: [{ category: 'network', message: 'raw' }] } }), /unsupported or unsafe/);
+  assert.throws(() => normalizeHostRuntimeTelemetry({ availability: 'available', execution: { networkFailures: -1 } }), /between 0/);
+  assert.throws(() => normalizeHostRuntimeTelemetry({ availability: 'available', execution: { startedAt: '2026-08-30', finishedAt: '2026-08-29' } }), /reversed/);
+  assert.throws(() => normalizeHostRuntimeTelemetry({ availability: 'available', records: [{ availability: 'available', records: [] }] }), /non-nested/);
+});
+
 test('creates a compact versioned digest and preserves provenance', () => {
   const digest = createDigest({ execution: execution('ok-1', 'alpha'), evidence: { source: 'actions', references: ['actions://1'] }, semantic: semantic('ok-1', 'success', [], { actions: ['run tests'], verification: { tests: 'passed' } }) });
   assert.equal(digest.schema, 'celestan-execution-digest-v1');
-  assert.equal(digest.observerVersion, '1.1.0');
-  assert.equal(OBSERVER_VERSION, '1.1.0');
+  assert.equal(digest.observerVersion, '1.2.0');
+  assert.equal(OBSERVER_VERSION, '1.2.0');
   assert.equal(digest.execution.id, 'ok-1');
   assert.deepEqual(digest.verification, { tests: 'passed' });
   assert.deepEqual(digest.provenance.references, ['actions://1']);
@@ -343,4 +363,20 @@ test('policy consumer preserves provenance and prevents identity auto-acceptance
   assert.equal(createPolicyDecision(candidate, 'defer', 'identity-review').action, 'defer');
   assert.throws(() => createPolicyDecision(candidate, 'accept', 'identity-review'), /review-only/);
   assert.equal(createPolicyDecision(candidate, 'accept', 'lessons').evidence.length, 2);
+});
+
+test('policy, coverage, and Chronicle use storage-neutral hooks when supplied', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
+  const store = new ObserverStore(root);
+  const calls = [];
+  store.appendPolicyDecision = async (value) => { calls.push(['policy', value]); return value; };
+  store.appendCoverageSnapshot = async (value) => { calls.push(['coverage', value]); return value; };
+  store.appendChronicleArtifact = async (value, markdown) => { calls.push(['chronicle', value, markdown]); return value; };
+  const candidate = { key: 'hook', evidence: ['hook-run'] };
+  await appendPolicyDecision(store, createPolicyDecision(candidate, 'defer', 'foundry'));
+  await appendCoverageSnapshot(store, { manifest: [], records: [] });
+  await digestAndAppend(store, input('hook-run', 'alpha'));
+  await appendChronicle(store, { start: '2026-08-29', end: '2026-08-29' }, path.join(root, 'chronicle', 'hook.json'));
+  assert.deepEqual(calls.map((call) => call[0]), ['policy', 'coverage', 'chronicle']);
+  assert.match(calls[2][2], /# Observer Chronicle/);
 });

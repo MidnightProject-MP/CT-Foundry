@@ -4,11 +4,11 @@
 
 `Identity -> Memory -> Context -> Behavior -> Experience -> Observer -> Reflection/Consolidation -> Memory + Identity -> future behavior`
 
-Observer is a generic Foundry capability, not a project feature. Workspace inventory found no CT-Runtime repository, workflow, service, or local scheduler; the only runtime evidence is the declarative external wake-up capability in Identity. Observer therefore exposes a stable CLI and JavaScript API for a runtime to call without changing the ledger contract.
+Observer is a generic Foundry capability, not a project feature. CT-Runtime calls its stable JavaScript API while retaining execution, database, object-storage, and scheduling ownership. The filesystem CLI remains a storage-neutral fallback and export path.
 
 ## Data flow
 
-1. The runtime executes work and writes a compact manifest immediately, containing an execution ID, project, run/session ID, commit, status, timestamps, evidence URIs, and a safe evidence digest. It may also supply `execution.orchestration` and `execution.modelRuntimeTelemetry`. Raw GitHub Actions logs or local `.celestan/` session logs remain outside Git.
+1. The runtime executes work and writes a compact manifest immediately, containing an execution ID, project, run/session ID, commit, status, timestamps, evidence URIs, and a safe evidence digest. It may also supply `execution.orchestration`, authoritative `execution.modelRuntimeTelemetry`, and separately sampled `execution.hostRuntimeTelemetry`. Raw GitHub Actions logs or local `.celestan/` session logs remain outside Git.
 2. An adapter retrieves completed evidence. Observer creates a provider-neutral semantic task with the evidence package, observation prompt, output schema, and pending completion state. Celestan's normal model-selection machinery performs inference; Observer validates the result and records failures without claiming observation.
 3. Observer writes exactly one immutable `celestan-execution-digest-v1` record per execution. Evidence-only records are `semantic-analysis-pending`; they never count as semantically observed. The filename and `ledger.ndjson` provide idempotency; `cursor.json` is a restart hint, while records remain authoritative if a crash occurs before checkpoint update.
 4. A valid `celestan-semantic-observation-v1` result creates an immutable semantic record and transitions the execution to `observed`. Optional orchestration and model-routing assessments are separate from generic signals, cite supplied evidence/telemetry, and state uncertainty. Routing assessment is task-conditioned and keeps semantic failure/cause attribution distinct from runtime-reported cause. Consolidation reads only observed records and existing Memory/LESSONS snapshots, groups explicit signals, counts independent projects, and emits candidates with provenance.
@@ -30,6 +30,12 @@ The optional input has four bounded record sets: sessions, invocations, failures
 Each normalized measurement explicitly says `available` or `unavailable`; zero is retained as available zero. Invocation records are atomic for additive aggregation. If any invocation exists, session measurements are not added to invocation measurements. A session-only execution may use session measurements with basis and coverage recorded. Aggregate identity/outcome/count, token, context, tool, retry, duration, and cost dimensions each carry coverage. Total tokens are never derived from input/output/reasoning/cache components, context pressure requires used tokens plus a positive limit, and currencies are never summed together. Execution wall time and additive invocation time are separate.
 
 Failure categories cover model output quality, instruction following, context pressure, provider limits, provider capacity/5xx, network/transport/timeouts, authentication/account/billing, tool/runtime/sandbox, policy/refusal, protocol/schema/tool calls, cancellation, and unknown. Infrastructure categories remain infrastructure facts; no mechanical rule maps them to model quality. Retry/fallback/provider-switch/model-switch transition facets may overlap on one event, while the event total remains non-overlapping.
+
+Mechanical process-output byte and chunk rows are runtime diagnostics, not authoritative model telemetry. A runtime must persist model envelopes through a distinct interface and combine all sessions, invocations, failures, and transitions in deterministic sequence order. If no authoritative envelope exists, it omits the model input and Observer records explicit unavailability.
+
+## Host runtime telemetry
+
+Host telemetry remains a separate digest field and semantic-task input. Observer deeply validates bounded startup, execution, and termination samples, host identity, ISO-compatible timestamps, nonnegative counts and durations, safe failure facts, resources, termination state, and genuinely measured currency cost. Records cannot nest. Unknown host facts remain explicitly unavailable rather than becoming zero, and host measurements never enter model aggregates.
 
 ## Execution distribution
 

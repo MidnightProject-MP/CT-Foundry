@@ -1,6 +1,6 @@
 # Celestan Observer
 
-Observer 1.1.0 is a dependency-free, reusable capability for turning one execution's safe evidence into an immutable Execution Digest, then running a first-class semantic observation pass, consolidating observations into promotion candidates, and generating an append-only weekly Chronicle. Its additive model/runtime telemetry extension preserves the V1 digest and semantic schema names.
+Observer 1.2.0 is a dependency-free, storage-neutral capability for turning one execution's safe evidence into an immutable Execution Digest, then running a first-class semantic observation pass, consolidating observations into promotion candidates, and generating an append-only weekly Chronicle. Its additive model and host runtime telemetry fields preserve the V1 digest and semantic schema names.
 
 ## Boundary
 
@@ -16,7 +16,7 @@ npm run observe -- consolidate --store .celestan/observer
 npm run observe -- chronicle --start 2026-08-24 --end 2026-08-30 --store .celestan/observer
 ```
 
-`evidence.json` contains `{ "execution": {...}, "evidence": {...} }`. `execution.orchestration` and `execution.modelRuntimeTelemetry` are optional. Observer projects normalized telemetry to digest-owned top-level `modelRuntimeTelemetry`; semantic sidecars cannot replace it.
+`evidence.json` contains `{ "execution": {...}, "evidence": {...} }`. `execution.orchestration`, `execution.modelRuntimeTelemetry`, and `execution.hostRuntimeTelemetry` are optional. Model telemetry accepts only authoritative model sessions, invocations, failures, and transitions; process stdout byte/chunk counters are not model telemetry. Omit absent model telemetry instead of passing an availability object. Observer projects both telemetry families to separate digest-owned top-level fields; semantic sidecars cannot replace either.
 
 Model/runtime telemetry may contain `sessions`, `invocations`, `failures`, and `transitions`. Session and invocation records accept bounded IDs/lineage; provider, model, exact provider/model versions, agent, role, and a bounded task type plus label/ID; timestamps/duration and turns; independent input/output/reasoning/cache-read/cache-write/total token dimensions; used/limit/compaction context facts; tool/mutation/failure counts and bounded by-name counts; attempt/retry/backoff/wait facts; genuinely measured cost and currency; and bounded status/outcome. Every optional measurement normalizes to explicit `available` or `unavailable`; zero remains available zero. A zero local cost is unavailable unless the runtime sets `cost.measured: true`.
 
@@ -41,7 +41,11 @@ Runtime state belongs in a gitignored `.celestan/observer` directory (or equival
 - `consolidation-YYYY-MM-DD.json`: generated findings and evidence references;
 - `chronicle/YYYY-MM-DD.json` and `.md`: one append-only structured and human-readable entry per period.
 
-The future CT-Runtime should keep raw Actions/local logs in its native retention store and pass safe URI/SHA references, not secrets or copied raw logs. It should write a manifest immediately after each execution and periodically invoke `digest`, `consolidate`, and `chronicle`. A manifest entry without a record is a coverage failure, never a successful no-op.
+CT-Runtime keeps raw Actions/local logs in its native retention store and passes safe URI/SHA references, not secrets or copied raw logs. It writes a manifest immediately after each execution and periodically invokes digest, semantic observation, consolidation, and Chronicle paths. A manifest entry without a record is a coverage failure, never a successful no-op.
+
+Stores may implement `getSemantic`, `appendPolicyDecision`, `appendCoverageSnapshot`, and `appendChronicleArtifact`. `joinedRecords()` always validates sidecars through `getSemantic`; consolidation therefore works identically with filesystem, PostgreSQL, or object-backed stores. The filesystem implementation remains the CLI fallback. Database/object artifacts are operational authority, while Chronicle Markdown remains a portable export that can be promoted to Git only by deliberate policy.
+
+Host telemetry is validated independently. It supports bounded startup, execution, and termination records; host identity; timestamps and durations; explicit network/provider counts; safe failure arrays; CPU, memory, and ephemeral-storage limits/measurements; termination state; and genuinely measured per-currency cost. Unknown or unavailable host facts remain explicit. Nested records, unbounded counts, reversed timestamps, raw failure messages, and unknown fields are rejected.
 
 Current OpenCode records expose assistant-message `providerID`, `modelID`, `variant`, `agent`, `mode`, timestamps, tokens/cache, and cost; task metadata exposes child lineage/model; tool parts expose status/time/error. They do not expose authoritative retry/fallback intent, context limit, or session finish. Observed local costs are all zero and must remain unavailable unless a runtime explicitly asserts they are genuinely measured. Future CT-Runtime owns truthful capture, authoritative enrichment, scheduling, and any later enforcement. Observer cannot reconstruct omitted facts.
 

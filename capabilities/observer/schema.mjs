@@ -1,4 +1,4 @@
-export const OBSERVER_VERSION = '1.1.0';
+export const OBSERVER_VERSION = '1.2.0';
 export const DIGEST_SCHEMA = 'celestan-execution-digest-v1';
 export const SEMANTIC_SCHEMA = 'celestan-semantic-observation-v1';
 export const CONSOLIDATION_SCHEMA = 'celestan-observer-consolidation-v1';
@@ -36,6 +36,7 @@ export function createDigest({ execution = {}, evidence = {}, semantic } = {}) {
   const status = execution.status || evidence.status || 'unknown';
   const refs = values(evidence.references || execution.references);
   const modelRuntimeTelemetry = normalizeModelRuntimeTelemetry(execution.modelRuntimeTelemetry, execution, refs);
+  const hostRuntimeTelemetry = normalizeHostRuntimeTelemetry(execution.hostRuntimeTelemetry);
   if (semantic) validateSemanticObservation(semantic, execution.executionId, { allowedEvidenceReferences: refs, allowedTelemetryReferences: telemetryReferenceIds(modelRuntimeTelemetry) });
   const digest = {
     schema: DIGEST_SCHEMA,
@@ -54,6 +55,7 @@ export function createDigest({ execution = {}, evidence = {}, semantic } = {}) {
     },
     executionDistribution: deriveExecutionDistribution(orchestration),
     modelRuntimeTelemetry,
+    hostRuntimeTelemetry,
     observedAt: new Date().toISOString(),
     lifecycle: { state: semantic ? 'observed' : 'semantic-analysis-pending' },
     provenance: {
@@ -76,6 +78,7 @@ export function createSemanticObservationTask(digest) {
       execution: digest.execution,
       executionDistribution: digest.executionDistribution,
       modelRuntimeTelemetry: digest.modelRuntimeTelemetry,
+      hostRuntimeTelemetry: digest.hostRuntimeTelemetry,
       objective: digest.objective,
       provenance: digest.provenance,
       evidenceReferences: digest.provenance.references || [],
@@ -124,6 +127,90 @@ export function normalizeModelRuntimeTelemetry(telemetry, execution = {}, allowe
     aggregate: aggregateTelemetry({ sessions, invocations, failures, transitions }, records, basis, execution)
   });
 }
+
+export function normalizeHostRuntimeTelemetry(telemetry, depth = 0) {
+  if (telemetry === undefined || telemetry === null) return { availability: 'unavailable', reason: 'runtime-host-telemetry-not-supplied' };
+  plainObject(telemetry, 'execution.hostRuntimeTelemetry');
+  const allowed = ['schema', 'availability', 'reason', 'host', 'records', 'sampleType', 'sampledAt', 'deployment', 'runtimeClass', 'region', 'architecture', 'os', 'image', 'coldStart', 'startup', 'execution', 'networkFailures', 'providerFailures', 'resourceLimits', 'resources', 'termination', 'cost'];
+  rejectUnknown(telemetry, allowed, 'execution.hostRuntimeTelemetry');
+  if (telemetry.availability !== undefined && !['available', 'unavailable', 'partial'].includes(telemetry.availability)) throw new Error('execution.hostRuntimeTelemetry.availability is invalid');
+  const result = { availability: telemetry.availability || 'available' };
+  if (telemetry.reason !== undefined) result.reason = safeText(telemetry.reason, 'execution.hostRuntimeTelemetry.reason', 240, true);
+  if (telemetry.availability === 'unavailable' && result.reason === undefined) result.reason = 'host-telemetry-unavailable';
+  if (telemetry.records !== undefined) {
+    if (depth || !Array.isArray(telemetry.records) || telemetry.records.length > 100) throw new Error('execution.hostRuntimeTelemetry.records must be a non-nested array of at most 100 records');
+    result.records = telemetry.records.map((record) => normalizeHostRuntimeTelemetry(record, depth + 1));
+  }
+  for (const field of ['schema', 'deployment', 'runtimeClass', 'region', 'architecture', 'os', 'image', 'reason', 'termination']) if (telemetry[field] !== undefined) result[field] = safeText(telemetry[field], `execution.hostRuntimeTelemetry.${field}`, 240, false);
+  if (telemetry.host !== undefined) { plainObject(telemetry.host, 'execution.hostRuntimeTelemetry.host'); rejectUnknown(telemetry.host, ['instanceId', 'deployment', 'provider', 'runtimeClass', 'region', 'architecture', 'os', 'imageDigest', 'runtimeVersion'], 'execution.hostRuntimeTelemetry.host'); result.host = Object.fromEntries(Object.entries(telemetry.host).map(([key, value]) => [key, safeText(value, `execution.hostRuntimeTelemetry.host.${key}`, 240, true)])); }
+  if (telemetry.sampleType !== undefined) result.sampleType = boundedEnum(telemetry.sampleType, new Set(['startup', 'execution', 'termination']), 'execution.hostRuntimeTelemetry.sampleType');
+  if (telemetry.sampledAt !== undefined) result.sampledAt = optionalTimestamp(telemetry.sampledAt, 'execution.hostRuntimeTelemetry.sampledAt');
+  if (telemetry.coldStart !== undefined) { if (typeof telemetry.coldStart !== 'boolean') throw new Error('execution.hostRuntimeTelemetry.coldStart must be boolean'); result.coldStart = telemetry.coldStart; }
+  if (telemetry.startup !== undefined) result.startup = normalizeHostStartup(telemetry.startup);
+  if (telemetry.execution !== undefined) result.execution = normalizeHostExecution(telemetry.execution);
+  if (telemetry.resourceLimits !== undefined) result.resourceLimits = normalizeHostResources(telemetry.resourceLimits, 'execution.hostRuntimeTelemetry.resourceLimits');
+  if (telemetry.resources !== undefined) result.resources = normalizeHostResources(telemetry.resources, 'execution.hostRuntimeTelemetry.resources');
+  if (telemetry.networkFailures !== undefined) result.networkFailures = boundedHostCount(telemetry.networkFailures, 'execution.hostRuntimeTelemetry.networkFailures');
+  if (telemetry.providerFailures !== undefined) result.providerFailures = boundedHostCount(telemetry.providerFailures, 'execution.hostRuntimeTelemetry.providerFailures');
+  if (telemetry.cost !== undefined) result.cost = normalizeHostCost(telemetry.cost);
+  return compact(result);
+}
+
+function normalizeHostStartup(raw) {
+  const where = 'execution.hostRuntimeTelemetry.startup';
+  plainObject(raw, where); rejectUnknown(raw, ['coldStart', 'startedAt', 'durationMs'], where);
+  const result = {};
+  if (raw.coldStart !== undefined) { if (typeof raw.coldStart !== 'boolean') throw new Error(`${where}.coldStart must be boolean`); result.coldStart = raw.coldStart; }
+  if (raw.startedAt !== undefined) result.startedAt = optionalTimestamp(raw.startedAt, `${where}.startedAt`);
+  if (raw.durationMs !== undefined) result.durationMs = boundedHostNumber(raw.durationMs, `${where}.durationMs`);
+  return result;
+}
+
+function normalizeHostExecution(raw) {
+  const where = 'execution.hostRuntimeTelemetry.execution';
+  plainObject(raw, where); rejectUnknown(raw, ['startedAt', 'finishedAt', 'durationMs', 'networkFailures', 'providerFailures', 'failures', 'termination'], where);
+  const result = {};
+  for (const field of ['startedAt', 'finishedAt']) if (raw[field] !== undefined) result[field] = optionalTimestamp(raw[field], `${where}.${field}`);
+  if (result.startedAt && result.finishedAt && Date.parse(result.finishedAt) < Date.parse(result.startedAt)) throw new Error(`${where} timestamps are reversed`);
+  if (raw.durationMs !== undefined) result.durationMs = boundedHostNumber(raw.durationMs, `${where}.durationMs`);
+  for (const field of ['networkFailures', 'providerFailures']) if (raw[field] !== undefined) result[field] = boundedHostCount(raw[field], `${where}.${field}`);
+  if (raw.termination !== undefined) result.termination = safeText(raw.termination, `${where}.termination`, 120, true);
+  if (raw.failures !== undefined) {
+    if (!Array.isArray(raw.failures) || raw.failures.length > 50) throw new Error(`${where}.failures must contain at most 50 records`);
+    result.failures = raw.failures.map((failure, index) => {
+      const failureWhere = `${where}.failures[${index}]`;
+      plainObject(failure, failureWhere); rejectUnknown(failure, ['category', 'errorClass', 'errorCode', 'count', 'timestamp', 'retryable'], failureWhere);
+      const value = { category: boundedEnum(failure.category, new Set(['network', 'provider', 'runtime', 'termination', 'unknown']), `${failureWhere}.category`) };
+      for (const field of ['errorClass', 'errorCode']) if (failure[field] !== undefined) value[field] = safeText(failure[field], `${failureWhere}.${field}`, 160, true);
+      if (failure.count !== undefined) value.count = boundedHostCount(failure.count, `${failureWhere}.count`);
+      if (failure.timestamp !== undefined) value.timestamp = optionalTimestamp(failure.timestamp, `${failureWhere}.timestamp`);
+      if (failure.retryable !== undefined) { if (typeof failure.retryable !== 'boolean') throw new Error(`${failureWhere}.retryable must be boolean`); value.retryable = failure.retryable; }
+      return value;
+    });
+  }
+  return result;
+}
+
+function normalizeHostResources(raw, where) {
+  plainObject(raw, where); rejectUnknown(raw, ['cpu', 'memory', 'ephemeralStorage'], where);
+  return Object.fromEntries(Object.entries(raw).map(([field, value]) => {
+    if (typeof value === 'number') return [field, boundedHostNumber(value, `${where}.${field}`)];
+    return [field, safeText(value, `${where}.${field}`, 120, true)];
+  }));
+}
+
+function normalizeHostCost(raw) {
+  const where = 'execution.hostRuntimeTelemetry.cost';
+  plainObject(raw, where); rejectUnknown(raw, ['availability', 'reason', 'measured', 'amount', 'currency'], where);
+  if (raw.measured !== true) return { availability: 'unavailable', reason: raw.reason ? safeText(raw.reason, `${where}.reason`, 240, true) : 'not-genuinely-measured' };
+  boundedHostNumber(raw.amount, `${where}.amount`);
+  const currency = safeText(raw.currency, `${where}.currency`, 12, true).toUpperCase();
+  if (!/^[A-Z][A-Z0-9]{2,11}$/.test(currency)) throw new Error(`${where}.currency is invalid`);
+  return { availability: 'available', measured: true, amount: raw.amount, currency };
+}
+
+function boundedHostCount(value, where) { boundedNumber(value, where, 0, Number.MAX_SAFE_INTEGER, true); return value; }
+function boundedHostNumber(value, where) { boundedNumber(value, where, 0, Number.MAX_SAFE_INTEGER); return value; }
 
 function normalizeSession(raw, index) {
   const where = `execution.modelRuntimeTelemetry.sessions[${index}]`;
