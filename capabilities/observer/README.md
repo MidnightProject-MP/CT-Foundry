@@ -28,13 +28,14 @@ Failure records use one of `model-output-quality`, `instruction-following`, `con
 
 Observer deterministically emits `executionDistribution`: session/task/mutation denominators, parent-retained modification share, whether delegation was observed, and `elevatedParentRetentionProxy.observed`. The proxy is true only when total mutation calls are at least 10 and parent share is at least 0.8. Missing runtime metadata yields `availability: "unavailable"`; zero mutation calls make the share unavailable. Neither state means compliant.
 
-`semantic-task` includes both telemetry families and their valid record IDs in its evidence package. `semantic --input` accepts only a validated `celestan-semantic-observation-v1` result. In addition to `orchestrationAssessment`, optional `modelRoutingAssessment` uses `effective`, `mixed`, `ineffective-candidate`, `insufficient-evidence`, or `not-applicable`; it requires a task condition, summary, uncertainty, allowed evidence/telemetry references, and optional bounded failure/cause attributions with target and confidence. Runtime-reported cause and semantic attribution remain distinct. Numeric measurements stay out of generic `signals`. Evidence-only records remain `semantic-analysis-pending` until the semantic pass succeeds.
+`semantic-task` requires an eligible `celestan-observer-evidence-join-v1`. The task separates digest-owned `structuralContext` (with `semanticAuthority: "none"`) from joined `claimEvidence`; semantic output must cite the join `bindingHash` and enumerated claim references. Structural-only records are `semantic-evidence-insufficient` and cannot generate a task. `semantic --input` accepts only a validated `celestan-semantic-observation-v1` result. In addition to `orchestrationAssessment`, optional `modelRoutingAssessment` uses `effective`, `mixed`, `ineffective-candidate`, `insufficient-evidence`, or `not-applicable`; it requires a task condition, summary, uncertainty, allowed evidence/telemetry references, and optional bounded failure/cause attributions with target and confidence. Runtime-reported cause and semantic attribution remain distinct. Numeric measurements stay out of generic `signals`. Joined evidence-only records remain `semantic-analysis-pending` until the semantic pass succeeds.
 
 ## Storage
 
 Runtime state belongs in a gitignored `.celestan/observer` directory (or equivalent object storage). The semantic record itself is durable and may be mirrored into a repository-owned ledger when policy permits:
 
 - `records/<execution-id>.json`: immutable `celestan-execution-digest-v1` records;
+- `joins/<execution-id>.json`: immutable `celestan-observer-evidence-join-v1` claim-envelope bindings;
 - `semantic/<execution-id>.json`: immutable semantic observation results;
 - `ledger.ndjson`: append-only index of recorded IDs and paths;
 - `cursor.json`: last successful append checkpoint; records remain authoritative if a crash occurs before checkpoint update;

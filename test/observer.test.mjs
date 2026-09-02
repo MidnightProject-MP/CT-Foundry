@@ -3,12 +3,43 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { createDigest, createSemanticObservationTask, deriveExecutionDistribution, FAILURE_CATEGORIES, MODEL_ROUTING_OUTCOMES, OBSERVER_VERSION, ORCHESTRATION_OUTCOMES, SEMANTIC_SCHEMA, validateSemanticObservation, normalizeHostRuntimeTelemetry } from '../capabilities/observer/schema.mjs';
+import { createDigest, createEvidenceJoin, createSemanticEvidenceEnvelope, createSemanticObservationTask, deriveExecutionDistribution, FAILURE_CATEGORIES, MODEL_ROUTING_OUTCOMES, OBSERVER_VERSION, ORCHESTRATION_OUTCOMES, SEMANTIC_SCHEMA, validateSemanticObservation, normalizeHostRuntimeTelemetry } from '../capabilities/observer/schema.mjs';
 import { ObserverStore, appendChronicle, appendCoverageSnapshot, appendPolicyDecision, consolidate, coverageReport, createPolicyDecision, digestAndAppend, joinedRecords } from '../capabilities/observer/observer.mjs';
 
 const execution = (id, project, status = 'success') => ({ executionId: id, project, environment: 'fixture', status, startedAt: '2026-08-29T10:00:00Z', finishedAt: '2026-08-29T10:05:00Z' });
 const semantic = (id, status, signals = [], extra = {}) => ({ schema: SEMANTIC_SCHEMA, executionId: id, status: 'complete', summary: `${status} fixture`, confidence: 0.9, signals, ...extra });
-const input = (id, project, status, signals = [], extra = {}) => ({ execution: execution(id, project, status), evidence: { source: 'fixture', references: [`fixture://${id}`], ...extra }, semantic: semantic(id, status, signals) });
+const evidenceEnvelope = (id) => createSemanticEvidenceEnvelope({ lineage: { physicalExecutionId: id, workOrderId: `work-${id}` }, sources: [{ sourceId: `source-${id}`, sourceClass: 'execution-reported', reference: `fixture://${id}`, sha256: null, sourceExecutionId: id }], claims: [{ claimId: `claim-${id}`, claimType: 'execution-summary', statement: `Execution ${id} was supplied by the fixture.`, supportSourceIds: [`source-${id}`] }] });
+const input = (id, project, status, signals = [], extra = {}) => ({ execution: execution(id, project, status), evidence: { source: 'fixture', references: [`fixture://${id}`], ...extra }, evidenceEnvelope: evidenceEnvelope(id), semantic: (digest, join) => semantic(id, status, signals, { evidenceBasis: { bindingHash: join.bindingHash, claimReferences: join.claimReferences } }) });
+const joinForDigest = (digest) => createEvidenceJoin({ digest, envelope: evidenceEnvelope(digest.execution.id) });
+
+test('claim-envelope admission binds immutable claim refs and separates structural context', () => {
+  const digest = createDigest({ execution: execution('boundary', 'alpha'), evidence: { references: ['fixture://boundary'] } });
+  const envelope = createSemanticEvidenceEnvelope({ lineage: { physicalExecutionId: 'boundary', workOrderId: 'work-boundary' }, sources: [{ sourceId: 'source-1', sourceClass: 'execution-reported', reference: 'fixture://boundary', sha256: null, sourceExecutionId: 'boundary' }], claims: [{ claimId: 'claim-1', claimType: 'execution-summary', statement: 'verified fixture assertion', supportSourceIds: ['source-1'] }] });
+  const join = createEvidenceJoin({ digest, envelope });
+  const task = createSemanticObservationTask(digest, join);
+  assert.equal(task.evidencePackage.structuralContext.semanticAuthority, 'none');
+  assert.deepEqual(task.evidencePackage.evidenceBasis.claimReferences, [`${envelope.envelopeId}:claim-1`]);
+  assert.throws(() => createSemanticObservationTask(digest), /evidence join/);
+});
+
+test('semantic output must cite the immutable join and only enumerated claims', () => {
+  const digest = createDigest({ execution: execution('boundary-output', 'alpha'), evidence: { references: ['fixture://boundary-output'] } });
+  const envelope = createSemanticEvidenceEnvelope({ lineage: { physicalExecutionId: 'boundary-output', workOrderId: 'work-boundary-output' }, sources: [{ sourceId: 'source-1', sourceClass: 'execution-reported', reference: 'fixture://boundary-output', sha256: null, sourceExecutionId: 'boundary-output' }], claims: [{ claimId: 'claim-1', claimType: 'execution-summary', statement: 'assertion', supportSourceIds: ['source-1'] }] });
+  const join = createEvidenceJoin({ digest, envelope });
+  const output = semantic('boundary-output', 'success', [], { evidenceBasis: { bindingHash: join.bindingHash, claimReferences: [`${envelope.envelopeId}:claim-1`] } });
+  assert.equal(validateSemanticObservation(output, 'boundary-output', { join }).evidenceBasis.bindingHash, join.bindingHash);
+  assert.throws(() => validateSemanticObservation({ ...output, evidenceBasis: { ...output.evidenceBasis, claimReferences: ['unknown'] } }, 'boundary-output', { join }), /unknown reference/);
+});
+
+test('structural-only records are semantically ineligible and do not produce tasks', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'observer-boundary-'));
+  const store = new ObserverStore(root);
+  const { digest } = await digestAndAppend(store, { execution: execution('structural-only', 'alpha'), evidence: { references: ['fixture://structural-only'] } });
+  assert.equal(digest.lifecycle.state, 'semantic-evidence-insufficient');
+  await assert.rejects(() => store.semanticTask('structural-only'), /evidence join/);
+  const report = coverageReport({ records: await joinedRecords(store), manifest: [{ executionId: 'structural-only' }] });
+  assert.deepEqual(report.semanticallyIneligible, ['structural-only']);
+});
 
 test('host runtime telemetry is a separate validated contract', () => {
   const host = normalizeHostRuntimeTelemetry({ availability: 'available', host: { instanceId: 'h1', provider: 'local', runtimeClass: 'job', region: 'test', architecture: 'amd64', os: 'linux', imageDigest: 'sha256:x', runtimeVersion: 'v2' }, coldStart: true, resourceLimits: { cpu: '2' }, cost: { measured: false } });
@@ -54,7 +85,7 @@ test('normalizes comprehensive model runtime telemetry with explicit availabilit
   assert.equal(normalized.invocations[0].cost.amount, 0);
   assert.equal(normalized.failures[0].runtimeAttribution.source, 'runtime-reported');
   assert.equal(normalized.aggregate.basis, 'invocations');
-  assert.equal(createSemanticObservationTask(digest).evidencePackage.modelRuntimeTelemetry.aggregate.counts.invocations, 2);
+  assert.equal(createSemanticObservationTask(digest, joinForDigest(digest)).evidencePackage.modelRuntimeTelemetry.aggregate.counts.invocations, 2);
 });
 
 test('aggregates invocation facts once with partial independent dimensions and distinct durations', async () => {
@@ -121,7 +152,7 @@ test('derives execution-distribution formulas without mixing metrics into generi
   assert.equal(digest.executionDistribution.delegationObserved, true);
   assert.equal(digest.executionDistribution.elevatedParentRetentionProxy.observed, true);
   assert.deepEqual(digest.signals, undefined);
-  assert.equal(createSemanticObservationTask(digest).evidencePackage.executionDistribution.mutationCallCounts.total, 10);
+  assert.equal(createSemanticObservationTask(digest, joinForDigest(digest)).evidencePackage.executionDistribution.mutationCallCounts.total, 10);
 });
 
 test('reports absent or denominator-free orchestration measurements as unavailable, not zero or compliant', () => {
@@ -155,17 +186,17 @@ test('successful run, failed recovery, human correction, and crash remain struct
 test('semantic observation is explicit, provider-neutral, validated, and cannot be faked by evidence capture', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
   const store = new ObserverStore(root);
-  const pending = await digestAndAppend(store, { execution: execution('pending', 'alpha'), evidence: { source: 'fixture', references: ['fixture://pending'] } });
+  const pending = await digestAndAppend(store, { execution: execution('pending', 'alpha'), evidence: { source: 'fixture', references: ['fixture://pending'] }, evidenceEnvelope: evidenceEnvelope('pending') });
   assert.equal(pending.digest.lifecycle.state, 'semantic-analysis-pending');
   assert.deepEqual((await consolidate(store)).inputRecords, []);
-  const task = createSemanticObservationTask(pending.digest);
+  const task = createSemanticObservationTask(pending.digest, pending.join);
   assert.equal(task.completion, 'pending');
   assert.equal(task.outputSchema, SEMANTIC_SCHEMA);
   assert.equal(task.evidencePackage.executionDistribution.availability, 'unavailable');
   assert.deepEqual(task.orchestrationAssessment.outcomes, ORCHESTRATION_OUTCOMES);
   await assert.rejects(() => store.appendSemantic('pending', { schema: 'wrong', executionId: 'pending', status: 'complete', summary: 'bad', confidence: 1, signals: [] }), /Unsupported/);
   await assert.rejects(() => store.appendSemantic('pending', semantic('pending', 'success', [], { confidence: 0.2 })), /below/);
-  assert.equal((await store.appendSemantic('pending', semantic('pending', 'success'))).status, 'observed');
+  assert.equal((await store.appendSemantic('pending', semantic('pending', 'success', [], { evidenceBasis: { bindingHash: pending.join.bindingHash, claimReferences: pending.join.claimReferences } }))).status, 'observed');
   assert.equal((await consolidate(store)).inputRecords[0], 'pending');
 });
 
@@ -184,7 +215,7 @@ test('semantic orchestration assessment accepts every bounded outcome and requir
 test('semantic model routing assessment validates outcomes, evidence, telemetry references, and attributions', async () => {
   const telemetry = JSON.parse(await readFile(new URL('./fixtures/observer-model-runtime-telemetry.json', import.meta.url), 'utf8'));
   const digest = createDigest({ execution: { ...execution('routing-assessment', 'alpha'), modelRuntimeTelemetry: telemetry }, evidence: { references: ['fixture://routing', 'fixture://failure-1', 'fixture://transition-1'] } });
-  const task = createSemanticObservationTask(digest);
+  const task = createSemanticObservationTask(digest, joinForDigest(digest));
   assert.deepEqual(task.modelRoutingAssessment.outcomes, MODEL_ROUTING_OUTCOMES);
   assert.equal(task.evidencePackage.telemetryReferences.includes('failure-1'), true);
   for (const outcome of MODEL_ROUTING_OUTCOMES) {
@@ -304,19 +335,20 @@ test('coverage requires both authoritative observed markers', () => {
 test('authoritative joined records preserve pending state and support two-stage consumers', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'observer-'));
   const store = new ObserverStore(root);
-  await digestAndAppend(store, { execution: execution('two-stage', 'alpha'), evidence: { references: ['fixture://two-stage'] } });
-  await store.appendSemantic('two-stage', semantic('two-stage', 'success', [{ key: 'joined', type: 'lesson', text: 'Join semantic sidecars before consuming records.' }]));
+  const twoStage = await digestAndAppend(store, { execution: execution('two-stage', 'alpha'), evidence: { references: ['fixture://two-stage'] }, evidenceEnvelope: evidenceEnvelope('two-stage') });
+  await store.appendSemantic('two-stage', semantic('two-stage', 'success', [{ key: 'joined', type: 'lesson', text: 'Join semantic sidecars before consuming records.' }], { evidenceBasis: { bindingHash: twoStage.join.bindingHash, claimReferences: twoStage.join.claimReferences } }));
   await digestAndAppend(store, { execution: execution('still-pending', 'alpha'), evidence: { references: ['fixture://still-pending'] } });
   const records = await joinedRecords(store);
   assert.equal(records.length, 2);
   assert.equal(records.find((record) => record.execution.id === 'two-stage').lifecycle.state, 'observed');
-  assert.equal(records.find((record) => record.execution.id === 'still-pending').lifecycle.state, 'semantic-analysis-pending');
+  assert.equal(records.find((record) => record.execution.id === 'still-pending').lifecycle.state, 'semantic-evidence-insufficient');
   assert.equal((await store.joined()).find((record) => record.execution.id === 'two-stage').summary, 'success fixture');
   assert.deepEqual((await consolidate(store)).inputRecords, ['two-stage']);
   const coverage = coverageReport({ manifest: [{ executionId: 'two-stage' }, { executionId: 'still-pending' }, { executionId: 'absent' }], records });
   assert.equal(coverage.healthy, false);
   assert.deepEqual(coverage.missing, ['absent']);
-  assert.deepEqual(coverage.semanticMissing, ['still-pending']);
+  assert.deepEqual(coverage.semanticMissing, []);
+  assert.deepEqual(coverage.semanticallyIneligible, ['still-pending']);
   const chronicle = await appendChronicle(store, { start: '2026-08-29', end: '2026-08-29' }, path.join(root, 'chronicle', 'two-stage.json'));
   assert.deepEqual(chronicle.sourceExecutionIds, ['two-stage']);
 });
@@ -326,7 +358,7 @@ test('joined sidecars cannot overwrite immutable digest-owned fields', async () 
   const store = new ObserverStore(root);
   const orchestration = { taskAvailable: true, parentSessionCount: 1, workerSessionCount: 0, parentMutationCalls: 12, delegatedMutationCalls: 0 };
   const modelRuntimeTelemetry = { invocations: [{ invocationId: 'immutable-invocation', provider: 'provider', model: 'model', tokens: { total: 0 }, status: 'success' }] };
-  const { digest } = await digestAndAppend(store, { execution: { ...execution('injection', 'alpha'), orchestration, modelRuntimeTelemetry }, evidence: { source: 'fixture', references: ['fixture://injection'], evidenceDigest: 'immutable' } });
+  const { digest, join } = await digestAndAppend(store, { execution: { ...execution('injection', 'alpha'), orchestration, modelRuntimeTelemetry }, evidence: { source: 'fixture', references: ['fixture://injection'], evidenceDigest: 'immutable' }, evidenceEnvelope: evidenceEnvelope('injection') });
   const injected = semantic('injection', 'success', [], {
     schema: SEMANTIC_SCHEMA,
     observerVersion: '999.0.0',
@@ -337,6 +369,7 @@ test('joined sidecars cannot overwrite immutable digest-owned fields', async () 
     observedAt: 'never',
     lifecycle: { state: 'consolidated' }
   });
+  injected.evidenceBasis = { bindingHash: join.bindingHash, claimReferences: join.claimReferences };
   await store.appendSemantic('injection', injected);
   const [joined] = await joinedRecords(store);
   for (const field of ['schema', 'observerVersion', 'execution', 'provenance', 'executionDistribution', 'modelRuntimeTelemetry', 'observedAt']) assert.deepEqual(joined[field], digest[field]);

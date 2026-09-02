@@ -1,6 +1,7 @@
 import { mkdir, readFile, readdir, writeFile, appendFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createDigest, validateSemanticObservation, createSemanticObservationTask, projectSemanticObservation, telemetryReferenceIds, OBSERVER_VERSION, CONSOLIDATION_SCHEMA, CHRONICLE_SCHEMA, SEMANTIC_SCHEMA } from './schema.mjs';
+import { createDigest, createEvidenceJoin, validateEvidenceJoin, validateSemanticObservation, createSemanticObservationTask, projectSemanticObservation, telemetryReferenceIds, OBSERVER_VERSION, CONSOLIDATION_SCHEMA, CHRONICLE_SCHEMA, SEMANTIC_SCHEMA } from './schema.mjs';
+export { createEvidenceJoin, createSemanticObservationTask } from './schema.mjs';
 
 const json = (value) => JSON.stringify(value, null, 2) + '\n';
 // Hex encoding is filesystem-safe and injective, unlike character replacement.
@@ -8,9 +9,10 @@ const safe = (id) => Buffer.from(String(id), 'utf8').toString('hex');
 const now = () => new Date().toISOString();
 
 export class ObserverStore {
-  constructor(root) { this.root = root; this.records = path.join(root, 'records'); }
-  async init() { await mkdir(this.records, { recursive: true }); }
+  constructor(root) { this.root = root; this.records = path.join(root, 'records'); this.joins = path.join(root, 'joins'); }
+  async init() { await mkdir(this.records, { recursive: true }); await mkdir(this.joins, { recursive: true }); }
   recordPath(id) { return path.join(this.records, `${safe(id)}.json`); }
+  joinPath(id) { return path.join(this.joins, `${safe(id)}.json`); }
   async has(id) { try { await readFile(this.recordPath(id)); return true; } catch { return false; } }
   async append(digest) {
     await this.init();
@@ -25,11 +27,25 @@ export class ObserverStore {
   }
   async semanticTask(executionId) {
     const digest = JSON.parse(await readFile(this.recordPath(executionId), 'utf8'));
-    return createSemanticObservationTask(digest);
+    const join = await this.getJoin(executionId);
+    return createSemanticObservationTask(digest, join);
+  }
+  async getJoin(executionId) { try { return JSON.parse(await readFile(this.joinPath(executionId), 'utf8')); } catch (error) { if (error.code === 'ENOENT') return undefined; throw error; } }
+  async appendJoin(join) {
+    await this.init(); await mkdir(this.joins, { recursive: true });
+    const digest = JSON.parse(await readFile(this.recordPath(join.executionId), 'utf8'));
+    join = validateEvidenceJoin(join, digest);
+    const target = this.joinPath(join.executionId);
+    try { const existing = JSON.parse(await readFile(target, 'utf8')); if (immutableJoinContent(existing) !== immutableJoinContent(join)) throw new Error('Conflicting immutable evidence join already exists'); return { status: 'duplicate', executionId: join.executionId }; } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    try { await writeFile(target, json(join), { flag: 'wx' }); } catch (error) { if (error.code === 'EEXIST') return { status: 'duplicate', executionId: join.executionId }; throw error; }
+    return { status: 'processed', executionId: join.executionId };
   }
   async appendSemantic(executionId, output) {
     const digest = JSON.parse(await readFile(this.recordPath(executionId), 'utf8'));
-    validateSemanticObservation(output, executionId, { allowedEvidenceReferences: digest.provenance.references || [], allowedTelemetryReferences: telemetryReferenceIds(digest.modelRuntimeTelemetry) });
+    const join = await this.getJoin(executionId);
+    if (!join) throw new Error('A valid evidence join is required for semantic observation');
+    const validatedJoin = validateEvidenceJoin(join, digest);
+    validateSemanticObservation(output, executionId, { allowedEvidenceReferences: digest.provenance.references || [], allowedTelemetryReferences: telemetryReferenceIds(digest.modelRuntimeTelemetry), join: validatedJoin });
     const directory = path.join(this.root, 'semantic');
     await mkdir(directory, { recursive: true });
     const target = path.join(directory, `${safe(executionId)}.json`);
@@ -60,13 +76,23 @@ export class ObserverStore {
   async joined() { return joinedRecords(this); }
 }
 
+function immutableJoinContent(join) { return JSON.stringify({ schema: join.schema, executionId: join.executionId, bindingHash: join.bindingHash, claimReferences: join.claimReferences, envelope: join.envelope }); }
+
 export async function digestAndAppend(store, input) {
-  const preflightDigest = input.semantic ? createDigest({ execution: input.execution, evidence: input.evidence }) : undefined;
-  const semantic = input.semantic ? validateSemanticObservation(input.semantic, input.execution.executionId, { allowedEvidenceReferences: input.evidence?.references || input.execution.references || [], allowedTelemetryReferences: telemetryReferenceIds(preflightDigest.modelRuntimeTelemetry) }) : undefined;
-  const digest = createDigest({ ...input, semantic });
+  if (input.semantic && !(input.evidenceEnvelope || input.semanticEvidenceEnvelope || input.evidence?.semanticEvidenceEnvelope || input.join)) throw new Error('A valid evidence join is required before semantic observation');
+  const digest = createDigest({ execution: input.execution, evidence: input.evidence });
+  const envelope = input.evidenceEnvelope || input.semanticEvidenceEnvelope || input.evidence?.semanticEvidenceEnvelope || input.join?.envelope;
+  if (envelope) digest.lifecycle = { state: 'semantic-analysis-pending' };
+  else digest.lifecycle = { state: 'semantic-evidence-insufficient' };
   const result = await store.append(digest);
-  if (semantic && result.status === 'processed') await store.appendSemantic(digest.execution.id, semantic);
-  return { digest, result };
+  const bindingDigest = result.status === 'duplicate' ? JSON.parse(await readFile(store.recordPath(digest.execution.id), 'utf8')) : digest;
+  let join;
+  if (envelope) { join = input.join?.schema ? validateEvidenceJoin(input.join, bindingDigest) : createEvidenceJoin({ digest: bindingDigest, envelope }); }
+  if (join) await store.appendJoin(join);
+  const semanticOutput = typeof input.semantic === 'function' ? input.semantic(bindingDigest, join) : input.semantic;
+  const semantic = semanticOutput ? validateSemanticObservation(semanticOutput, bindingDigest.execution.id, { allowedEvidenceReferences: bindingDigest.provenance.references || [], allowedTelemetryReferences: telemetryReferenceIds(bindingDigest.modelRuntimeTelemetry), join }) : undefined;
+  if (semantic) await store.appendSemantic(bindingDigest.execution.id, semantic);
+  return { digest: { ...bindingDigest, lifecycle: { state: join ? 'semantic-analysis-pending' : 'semantic-evidence-insufficient' } }, result, join };
 }
 
 export async function consolidate(store, { existingMemory = [], existingLessons = [] } = {}) {
@@ -153,8 +179,13 @@ export async function appendChronicle(store, period, outputPath, markdownPath = 
 export async function joinedRecords(store) {
   const records = [];
   for (const record of await store.all()) {
+    const join = store.getJoin ? await store.getJoin(record.execution.id) : undefined;
+    if (!join) { records.push({ ...record, lifecycle: { ...record.lifecycle, state: 'semantic-evidence-insufficient' } }); continue; }
+    let validatedJoin;
+    try { validatedJoin = validateEvidenceJoin(join, record); }
+    catch { records.push({ ...record, lifecycle: { ...record.lifecycle, state: 'semantic-evidence-insufficient' } }); continue; }
     if (record.lifecycle?.state === 'observed' && record.semanticObservation?.status === 'complete') {
-      try { validateEmbeddedSemantic(record); records.push(record); }
+      try { validateEmbeddedSemantic(record, validatedJoin); records.push(record); }
       catch { records.push({ ...record, lifecycle: { ...record.lifecycle, state: 'semantic-analysis-pending' } }); }
     }
     else {
@@ -163,7 +194,7 @@ export async function joinedRecords(store) {
           ? await store.getSemantic(record.execution.id)
           : JSON.parse(await readFile(path.join(store.root, 'semantic', `${safe(record.execution.id)}.json`), 'utf8'));
         if (!semantic) throw Object.assign(new Error('semantic sidecar not found'), { code: 'ENOENT' });
-        validateSemanticObservation(semantic, record.execution.id, { allowedEvidenceReferences: record.provenance.references || [], allowedTelemetryReferences: telemetryReferenceIds(record.modelRuntimeTelemetry) });
+        validateSemanticObservation(semantic, record.execution.id, { allowedEvidenceReferences: record.provenance.references || [], allowedTelemetryReferences: telemetryReferenceIds(record.modelRuntimeTelemetry), join: validatedJoin });
         records.push({ ...record, ...projectSemanticObservation(semantic), lifecycle: { ...record.lifecycle, state: 'observed' } });
       } catch { records.push(record); }
     }
@@ -171,8 +202,8 @@ export async function joinedRecords(store) {
   return records;
 }
 
-function validateEmbeddedSemantic(record) {
-  validateSemanticObservation({ schema: SEMANTIC_SCHEMA, executionId: record.execution.id, status: record.semanticObservation.status, summary: record.summary, confidence: record.confidence, signals: record.signals || [], orchestrationAssessment: record.orchestrationAssessment, modelRoutingAssessment: record.modelRoutingAssessment }, record.execution.id, { allowedEvidenceReferences: record.provenance?.references || [], allowedTelemetryReferences: telemetryReferenceIds(record.modelRuntimeTelemetry) });
+function validateEmbeddedSemantic(record, join) {
+  validateSemanticObservation({ schema: SEMANTIC_SCHEMA, executionId: record.execution.id, status: record.semanticObservation.status, summary: record.summary, confidence: record.confidence, signals: record.signals || [], orchestrationAssessment: record.orchestrationAssessment, modelRoutingAssessment: record.modelRoutingAssessment, evidenceBasis: record.evidenceBasis }, record.execution.id, { allowedEvidenceReferences: record.provenance?.references || [], allowedTelemetryReferences: telemetryReferenceIds(record.modelRuntimeTelemetry), join });
 }
 
 export const isObservedRecord = (record) => record.lifecycle?.state === 'observed' && record.semanticObservation?.status === 'complete';
@@ -198,8 +229,9 @@ export function coverageReport({ manifest = [], records = [], failures = [] }) {
   const processed = new Set(records.map((record) => record.execution.id));
   const observed = new Set(records.filter(isObservedRecord).map((record) => record.execution.id));
   const missing = manifest.filter((item) => !processed.has(item.executionId)).map((item) => item.executionId);
-  const semanticMissing = manifest.filter((item) => processed.has(item.executionId) && !observed.has(item.executionId)).map((item) => item.executionId);
-  return { schema: 'celestan-observer-coverage-v1', checkedAt: now(), expected: manifest.length, processed: processed.size, semanticallyObserved: observed.size, missing, semanticMissing, failures, healthy: missing.length === 0 && semanticMissing.length === 0 && failures.length === 0 };
+  const semanticallyIneligible = records.filter((record) => record.lifecycle?.state === 'semantic-evidence-insufficient').map((record) => record.execution.id);
+  const semanticMissing = manifest.filter((item) => processed.has(item.executionId) && !observed.has(item.executionId) && !semanticallyIneligible.includes(item.executionId)).map((item) => item.executionId);
+  return { schema: 'celestan-observer-coverage-v1', checkedAt: now(), expected: manifest.length, processed: processed.size, semanticallyObserved: observed.size, missing, semanticMissing, semanticallyIneligible, failures, healthy: missing.length === 0 && semanticMissing.length === 0 && semanticallyIneligible.length === 0 && failures.length === 0 };
 }
 
 export async function appendCoverageSnapshot(store, input) {

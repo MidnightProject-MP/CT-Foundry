@@ -1,10 +1,77 @@
+import { createHash } from 'node:crypto';
+
 export const OBSERVER_VERSION = '1.2.0';
 export const DIGEST_SCHEMA = 'celestan-execution-digest-v1';
 export const SEMANTIC_SCHEMA = 'celestan-semantic-observation-v1';
 export const CONSOLIDATION_SCHEMA = 'celestan-observer-consolidation-v1';
 export const CHRONICLE_SCHEMA = 'celestan-observer-chronicle-v1';
 export const SEMANTIC_PROMPT_VERSION = 'celestan-observer-semantic-task-v1';
+export const SEMANTIC_EVIDENCE_ENVELOPE_SCHEMA = 'celestan-semantic-evidence-envelope-v1';
+export const EVIDENCE_JOIN_SCHEMA = 'celestan-observer-evidence-join-v1';
 export const SEMANTIC_CONFIDENCE_FLOOR = 0.6;
+export const SOURCE_CLASSES = Object.freeze(['operator-supplied', 'execution-reported', 'mechanically-verified', 'independently-reviewed', 'runtime-observed', 'provider-reported']);
+export const CLAIM_TYPES = Object.freeze(['objective', 'execution-summary', 'completion', 'failure', 'verification', 'review-finding', 'rework', 'outcome', 'residual-uncertainty', 'other']);
+const ENVELOPE_FIELDS = ['schema', 'version', 'envelopeId', 'lineage', 'sources', 'claims', 'contentHash'];
+const SOURCE_FIELDS = ['sourceId', 'sourceClass', 'reference', 'sha256', 'sourceExecutionId'];
+const CLAIM_FIELDS = ['claimId', 'claimType', 'statement', 'supportSourceIds'];
+const SHA256 = /^[a-f0-9]{64}$/;
+
+export function createEvidenceJoin({ digest, envelope, semanticEvidence, claimEvidence } = {}) {
+  const input = envelope || semanticEvidence || claimEvidence;
+  const validated = validateSemanticEvidenceEnvelope(input, digest);
+  const claimReferences = validated.claims.map((claim) => claimReference(validated.envelopeId, claim.claimId));
+  const bindingHash = deterministicHash({ digest: digestBinding(digest), envelope: validated });
+  return { schema: EVIDENCE_JOIN_SCHEMA, executionId: digest.execution.id, bindingHash, claimReferences, envelope: validated, createdAt: new Date().toISOString() };
+}
+
+export function validateEvidenceJoin(join, digest) {
+  plainObject(join, 'Evidence join');
+  if (join.schema !== EVIDENCE_JOIN_SCHEMA) throw new Error(`Unsupported evidence join schema; expected ${EVIDENCE_JOIN_SCHEMA}`);
+  if (join.executionId !== digest.execution.id) throw new Error('Evidence join executionId does not match digest');
+  const envelope = validateSemanticEvidenceEnvelope(join.envelope, digest);
+  const refs = envelope.claims.map((claim) => claimReference(envelope.envelopeId, claim.claimId));
+  if (!Array.isArray(join.claimReferences) || join.claimReferences.length !== refs.length || join.claimReferences.some((ref, i) => ref !== refs[i])) throw new Error('Evidence join claimReferences do not match envelope');
+  const expected = deterministicHash({ digest: digestBinding(digest), envelope });
+  if (join.bindingHash !== expected) throw new Error('Evidence join bindingHash does not match digest and envelope');
+  return { ...join, envelope, claimReferences: refs };
+}
+
+export const createObserverEvidenceJoin = createEvidenceJoin;
+export const validateObserverEvidenceJoin = validateEvidenceJoin;
+export function claimReference(envelopeId, claimId) { return `${envelopeId}:${claimId}`; }
+export function createSemanticEvidenceEnvelope({ lineage, sources, claims } = {}) {
+  const body = { schema: SEMANTIC_EVIDENCE_ENVELOPE_SCHEMA, version: 1, lineage, sources, claims };
+  const contentHash = createHash('sha256').update(JSON.stringify(body)).digest('hex');
+  return validateSemanticEvidenceEnvelope({ ...body, envelopeId: `sem_${contentHash.slice(0, 32)}`, contentHash }, { execution: { id: lineage?.physicalExecutionId }, provenance: {} });
+}
+
+function validateSemanticEvidenceEnvelope(raw, digest) {
+  plainObject(raw, 'Semantic evidence envelope');
+  rejectUnknown(raw, ENVELOPE_FIELDS, 'Semantic evidence envelope');
+  if (raw.schema !== SEMANTIC_EVIDENCE_ENVELOPE_SCHEMA || raw.version !== 1) throw new Error('Semantic evidence envelope schema or version is invalid');
+  if (typeof raw.envelopeId !== 'string' || !/^sem_[a-f0-9]{32}$/.test(raw.envelopeId)) throw new Error('Semantic evidence envelope envelopeId is invalid');
+  plainObject(raw.lineage, 'Semantic evidence envelope lineage');
+  rejectUnknown(raw.lineage, ['physicalExecutionId', 'workOrderId', 'sourceSessionId'], 'Semantic evidence envelope lineage');
+  const lineage = { physicalExecutionId: safeText(raw.lineage.physicalExecutionId, 'lineage.physicalExecutionId', 160, true), workOrderId: safeText(raw.lineage.workOrderId, 'lineage.workOrderId', 160, true), ...(raw.lineage.sourceSessionId == null ? {} : { sourceSessionId: safeText(raw.lineage.sourceSessionId, 'lineage.sourceSessionId', 160, true) }) };
+  if (lineage.physicalExecutionId !== digest.execution.id) throw new Error('Semantic evidence envelope physicalExecutionId does not match digest');
+  if (!Array.isArray(raw.sources) || raw.sources.length < 1 || raw.sources.length > 100) throw new Error('Semantic evidence envelope sources are invalid');
+  const sourceIds = new Set();
+  const sources = raw.sources.map((source, index) => { const where = `Semantic evidence source[${index}]`; plainObject(source, where); rejectUnknown(source, SOURCE_FIELDS, where); const out = { sourceId: safeText(source.sourceId, `${where}.sourceId`, 160, true), sourceClass: boundedEnum(source.sourceClass, new Set(SOURCE_CLASSES), `${where}.sourceClass`), reference: safeText(source.reference, `${where}.reference`, 500, true), sha256: source.sha256 == null ? null : safeText(source.sha256, `${where}.sha256`, 64, true), sourceExecutionId: source.sourceExecutionId == null ? null : safeText(source.sourceExecutionId, `${where}.sourceExecutionId`, 160, true) }; if (!SHA256.test(out.sha256 || '')) { if (out.sha256 !== null) throw new Error(`${where}.sha256 is invalid`); } if (out.sourceClass === 'mechanically-verified' && !out.sha256) throw new Error(`${where}.mechanically-verified source requires sha256`); if (out.sourceClass === 'independently-reviewed' && (!out.sourceExecutionId || out.sourceExecutionId === lineage.physicalExecutionId)) throw new Error(`${where}.independently-reviewed source requires a distinct sourceExecutionId`); if (sourceIds.has(out.sourceId)) throw new Error('Semantic evidence source IDs must be unique'); sourceIds.add(out.sourceId); return out; });
+  if (!Array.isArray(raw.claims) || raw.claims.length < 1 || raw.claims.length > 50) throw new Error('Semantic evidence envelope claims are invalid');
+  const claimIds = new Set(); const usedSources = new Set();
+  const claims = raw.claims.map((claim, index) => { const where = `Semantic evidence claim[${index}]`; plainObject(claim, where); rejectUnknown(claim, CLAIM_FIELDS, where); const support = claim.supportSourceIds; if (!Array.isArray(support) || support.length < 1 || support.length > 20) throw new Error(`${where}.supportSourceIds is invalid`); for (const id of support) { safeText(id, `${where}.supportSourceIds`, 160, true); if (!sourceIds.has(id)) throw new Error(`${where} has dangling source`); usedSources.add(id); } const out = { claimId: safeText(claim.claimId, `${where}.claimId`, 160, true), claimType: boundedEnum(claim.claimType, new Set(CLAIM_TYPES), `${where}.claimType`), statement: safeText(claim.statement, `${where}.statement`, 1000, true), supportSourceIds: [...support] }; if (claimIds.has(out.claimId)) throw new Error('Semantic evidence claim IDs must be unique'); claimIds.add(out.claimId); return out; });
+  if (usedSources.size !== sourceIds.size) throw new Error('Semantic evidence sources must be used');
+  const canonical = JSON.stringify({ schema: raw.schema, version: raw.version, lineage, sources, claims });
+  if (Buffer.byteLength(JSON.stringify({ schema: raw.schema, version: raw.version, envelopeId: raw.envelopeId, lineage, sources, claims, contentHash: raw.contentHash }), 'utf8') > 64 * 1024) throw new Error('Semantic evidence envelope exceeds 64 KiB');
+  const contentHash = createHash('sha256').update(canonical).digest('hex');
+  if (raw.contentHash !== contentHash) throw new Error('Semantic evidence envelope contentHash does not match canonical content');
+  if (raw.envelopeId !== `sem_${contentHash.slice(0, 32)}`) throw new Error('Semantic evidence envelope envelopeId is invalid');
+  return { schema: raw.schema, version: 1, envelopeId: raw.envelopeId, lineage, sources, claims, contentHash: raw.contentHash };
+}
+
+function digestBinding(digest) { return { schema: digest.schema, execution: digest.execution, executionDistribution: digest.executionDistribution, modelRuntimeTelemetry: digest.modelRuntimeTelemetry, hostRuntimeTelemetry: digest.hostRuntimeTelemetry, provenance: digest.provenance, observedAt: digest.observedAt }; }
+function deterministicHash(value) { return createHash('sha256').update(stableStringify(value)).digest('hex'); }
+function stableStringify(value) { if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`; if (value && typeof value === 'object') return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`; return JSON.stringify(value); }
 
 export const ORCHESTRATION_OUTCOMES = Object.freeze([
   'aligned', 'mixed', 'justified-direct', 'under-delegation-candidate',
@@ -30,14 +97,14 @@ const ATTRIBUTION_TARGETS = new Set(['provider', 'model', 'provider-model', 'run
 const ATTRIBUTION_CONFIDENCE = new Set(['low', 'medium', 'high']);
 const values = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
 
-export function createDigest({ execution = {}, evidence = {}, semantic } = {}) {
+export function createDigest({ execution = {}, evidence = {}, semantic, evidenceJoin } = {}) {
   if (!execution.executionId) throw new Error('execution.executionId is required');
   const orchestration = validateOrchestrationMetadata(execution.orchestration);
   const status = execution.status || evidence.status || 'unknown';
   const refs = values(evidence.references || execution.references);
-  const modelRuntimeTelemetry = normalizeModelRuntimeTelemetry(execution.modelRuntimeTelemetry, execution, refs);
+  const modelRuntimeTelemetry = normalizeModelRuntimeTelemetry(execution.modelRuntimeTelemetry || evidence.modelRuntimeTelemetry, execution, refs);
   const hostRuntimeTelemetry = normalizeHostRuntimeTelemetry(execution.hostRuntimeTelemetry);
-  if (semantic) validateSemanticObservation(semantic, execution.executionId, { allowedEvidenceReferences: refs, allowedTelemetryReferences: telemetryReferenceIds(modelRuntimeTelemetry) });
+  if (semantic) validateSemanticObservation(semantic, execution.executionId, { allowedEvidenceReferences: refs, allowedTelemetryReferences: telemetryReferenceIds(modelRuntimeTelemetry), join: evidenceJoin });
   const digest = {
     schema: DIGEST_SCHEMA,
     observerVersion: OBSERVER_VERSION,
@@ -68,7 +135,9 @@ export function createDigest({ execution = {}, evidence = {}, semantic } = {}) {
   return compact(digest);
 }
 
-export function createSemanticObservationTask(digest) {
+export function createSemanticObservationTask(digest, join) {
+  if (!join) throw new Error('A valid evidence join is required for semantic analysis');
+  const validatedJoin = validateEvidenceJoin(join, digest);
   const telemetryReferences = telemetryReferenceIds(digest.modelRuntimeTelemetry);
   return {
     schema: SEMANTIC_PROMPT_VERSION,
@@ -80,7 +149,9 @@ export function createSemanticObservationTask(digest) {
       modelRuntimeTelemetry: digest.modelRuntimeTelemetry,
       hostRuntimeTelemetry: digest.hostRuntimeTelemetry,
       objective: digest.objective,
-      provenance: digest.provenance,
+      structuralContext: { semanticAuthority: 'none', execution: digest.execution, executionDistribution: digest.executionDistribution, hostRuntimeTelemetry: digest.hostRuntimeTelemetry, provenance: digest.provenance },
+      claimEvidence: validatedJoin.envelope,
+      evidenceBasis: { bindingHash: validatedJoin.bindingHash, claimReferences: validatedJoin.claimReferences },
       evidenceReferences: digest.provenance.references || [],
       telemetryReferences
     },
@@ -91,13 +162,17 @@ export function createSemanticObservationTask(digest) {
   };
 }
 
-export function validateSemanticObservation(output, executionId, { minimumConfidence = SEMANTIC_CONFIDENCE_FLOOR, allowedEvidenceReferences, allowedTelemetryReferences } = {}) {
+export function validateSemanticObservation(output, executionId, { minimumConfidence = SEMANTIC_CONFIDENCE_FLOOR, allowedEvidenceReferences, allowedTelemetryReferences, join } = {}) {
   if (!output || output.schema !== SEMANTIC_SCHEMA) throw new Error(`Unsupported semantic observation schema; expected ${SEMANTIC_SCHEMA}`);
   if (output.executionId !== executionId) throw new Error('Semantic observation executionId does not match digest');
   if (output.status !== 'complete') throw new Error('Semantic observation must have status complete');
   requiredText(output.summary, 'Semantic observation summary');
   boundedNumber(output.confidence, 'Semantic observation confidence', 0, 1);
   if (output.confidence < minimumConfidence) throw new Error(`Semantic observation confidence is below ${minimumConfidence}`);
+  if (join) {
+    if (!output.evidenceBasis || output.evidenceBasis.bindingHash !== join.bindingHash) throw new Error('Semantic observation evidenceBasis bindingHash does not match evidence join');
+    validateAllowedReferences(output.evidenceBasis.claimReferences, join.claimReferences, 'Semantic observation claim references', true);
+  } else if (output.evidenceBasis) throw new Error('Semantic observation evidenceBasis requires an evidence join');
   if (!Array.isArray(output.signals)) throw new Error('Semantic observation signals must be an array');
   const signals = validateSignals(output.signals, allowedEvidenceReferences);
   if (output.orchestrationAssessment !== undefined) validateOrchestrationAssessment(output.orchestrationAssessment, allowedEvidenceReferences);
@@ -107,8 +182,10 @@ export function validateSemanticObservation(output, executionId, { minimumConfid
 
 export function normalizeModelRuntimeTelemetry(telemetry, execution = {}, allowedEvidenceReferences = []) {
   if (telemetry === undefined || telemetry === null) return { availability: 'unavailable', reason: 'runtime-model-telemetry-not-supplied' };
+  if (telemetry.availability === 'unavailable') return { availability: 'unavailable', reason: telemetry.reason || 'runtime-model-telemetry-unavailable' };
+  if (telemetry.aggregate && !telemetry.invocations && !telemetry.sessions) return { availability: 'unavailable', reason: 'runtime-model-telemetry-aggregate-not-observer-shaped' };
   plainObject(telemetry, 'execution.modelRuntimeTelemetry');
-  rejectUnknown(telemetry, ['sessions', 'invocations', 'failures', 'transitions'], 'execution.modelRuntimeTelemetry');
+  rejectUnknown(telemetry, ['availability', 'sessions', 'invocations', 'failures', 'transitions'], 'execution.modelRuntimeTelemetry');
   for (const field of ['sessions', 'invocations', 'failures', 'transitions']) if (telemetry[field] !== undefined && !Array.isArray(telemetry[field])) throw new Error(`execution.modelRuntimeTelemetry.${field} must be an array`);
 
   const sessions = telemetry.sessions === undefined ? [] : telemetry.sessions.map(normalizeSession);
@@ -555,7 +632,7 @@ function validateSignals(signals, allowedEvidenceReferences) {
 export function projectSemanticObservation(semantic) {
   return compact({
     objective: semantic.objective, summary: semantic.summary, actions: values(semantic.actions), decisions: values(semantic.decisions), approaches: values(semantic.approaches), failures: values(semantic.failures), recoveries: values(semantic.recoveries), verification: semantic.verification, interventions: values(semantic.interventions), autonomyBlocks: values(semantic.autonomyBlocks), friction: values(semantic.friction), discoveries: values(semantic.discoveries), modelUsage: semantic.modelUsage, observations: values(semantic.observations), signals: values(semantic.signals), orchestrationAssessment: semantic.orchestrationAssessment, modelRoutingAssessment: semantic.modelRoutingAssessment, confidence: semantic.confidence,
-    semanticObservation: { schema: SEMANTIC_SCHEMA, status: semantic.status, completedAt: semantic.completedAt || new Date().toISOString() }
+    semanticObservation: { schema: SEMANTIC_SCHEMA, status: semantic.status, completedAt: semantic.completedAt || new Date().toISOString() }, evidenceBasis: semantic.evidenceBasis
   });
 }
 
